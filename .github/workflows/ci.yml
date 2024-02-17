@@ -24,6 +24,6 @@ jobs:
           mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
       - name: Check
         run: |
-          godot --headless --verbose --export-debug "Windows Desktop" ./$EXPORT_NAME.exe 2> build.log
-          bash -c "grep 'ERROR' build.log && exit 1"
+          godot --headless --verbose --export-debug "Windows Desktop" ./$EXPORT_NAME.exe 2>&1 | tee build.log
+          bash -c "grep -c 'ERROR' build.log && exit 1"
           exit 0
