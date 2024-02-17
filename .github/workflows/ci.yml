@@ -23,6 +23,6 @@ jobs:
           mkdir -v -p ~/.local/share/godot/export_templates/
           mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
       - name: Check
-        run: godot --headless --verbose --export-debug "Windows Desktop" ./$EXPORT_NAME.exe > build.log
-      - name: Parse Build Log
-        run: bash "(grep 'ERROR' build.log && exit 1) || exit 0"
+        run: |
+          godot --headless --verbose --export-debug "Windows Desktop" ./$EXPORT_NAME.exe 2> build.log
+          bash "(grep 'ERROR' build.log && exit 1) || exit 0"
