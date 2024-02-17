@@ -25,4 +25,5 @@ jobs:
       - name: Check
         run: |
           godot --headless --verbose --export-debug "Windows Desktop" ./$EXPORT_NAME.exe 2> build.log
-          bash -c "(grep 'ERROR' build.log && exit 1) || exit 0"
+          bash -c "grep 'ERROR' build.log && exit 1"
+          exit 0
