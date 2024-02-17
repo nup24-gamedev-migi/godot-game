@@ -11,7 +11,7 @@ env:
 
 jobs:
   check-test-scene:
-    name: Check test scene
+    name: Dummy Build
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:4.2.1
