@@ -26,3 +26,14 @@ jobs:
         run: |
           godot -d --headless --verbose --export-debug "Windows Desktop" ./$EXPORT_NAME.exe 2>&1 | tee build.log
           bash -c "test $(grep -c 'ERROR:' build.log) -le 3"
+  unit-tests:
+    name: Run Unit tests
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.2.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Check
+        run: |
+          godot -d -s --path "$PWD" addons/gut/gut_cmdln.gd
