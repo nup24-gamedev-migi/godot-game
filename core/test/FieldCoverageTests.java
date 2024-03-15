@@ -115,8 +115,8 @@ public class FieldCoverageTests {
                 "RRDD",
                 """
                         oooooooo
-                        oxxooooo
-                        ooxooooo
+                        ooxxoooo
+                        oooxoooo
                         oooooooo
                         oooooooo
                         oooooooo
