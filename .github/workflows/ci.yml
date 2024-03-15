@@ -9,6 +9,7 @@ on:
 jobs:
     autobuild:
         runs-on: ubuntu-latest
+        container: openjdk:20-jdk
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -19,6 +20,7 @@ jobs:
     unittests:
         runs-on: ubuntu-latest
         needs: autobuild
+        container: openjdk:20-jdk
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
