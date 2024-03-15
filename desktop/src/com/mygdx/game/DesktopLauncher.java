@@ -10,5 +10,5 @@ public class DesktopLauncher {
 		config.setForegroundFPS(60);
 		config.setTitle("test_gamedev_proj");
 		new Lwjgl3Application(new MyGame(), config);
-	}
+	} 
 }
