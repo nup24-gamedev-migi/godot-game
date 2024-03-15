@@ -129,10 +129,15 @@ public class Logic {
     public Logic(final CellType[][] field, final Map<Pos, ThingType> thingTypeMap) {
         // TODO make this constructor argument
         history = new ArrayList<>();
-        playerPos = new Pos(0, 0);
+        playerPos = thingTypeMap.entrySet()
+                .stream()
+                .filter(x -> x.getValue() == ThingType.PLAYER)
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElseThrow();
         fieldHeight = field.length;
         fieldWidth = field[0].length;
-        this.thingTypeMap = thingTypeMap;
+        this.thingTypeMap = new HashMap<>(thingTypeMap);
 
         this.field = new Cell[fieldHeight][fieldWidth];
         for (int y = 0; y < fieldHeight; y++) {
