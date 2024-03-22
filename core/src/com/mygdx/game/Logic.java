@@ -178,7 +178,8 @@ public class Logic {
                     curPosToFindCycle = history.get(j).pos;
                     visited[curPosToFindCycle.y][curPosToFindCycle.x] = CellState.CYCLE;
                 }
-                if (! validateCycle(visited, currentCellPos, j)) {
+                
+		if (! validateCycle(visited, currentCellPos, ++j)) {
                     int h = i - 1;
                     Pos curPos;
                     for (; h >= j; h--) {

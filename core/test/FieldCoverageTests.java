@@ -125,5 +125,116 @@ public class FieldCoverageTests {
                         """
         );
     }
+    
+    @Test
+    public void testCoverSimpleCircle() {
+        tryMoves(
+                8, 7,
+                new Logic.Pos(1, 1),
+                "RRRDDLLUUU",
+                """
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        """
+        );
+    }
+    @Test
+    public void testLongDistance() {
+        tryMoves(
+                8, 7,
+                new Logic.Pos(0, 0),
+                "RRRRRRRDDDDDDLLLLLLLUUUUURRRRRRDDDLLLL",
+                """
+                        oxxxxxxx
+                        xxxxxxxx
+                        xoooooxx
+                        xoooooxx
+                        xooxxxxx
+                        xoooooox
+                        xxxxxxxx
+                        """
+        );
+    }
+    @Test
+    public void testCoverTwoCircles() {
+        tryMoves(8, 8,
+                new Logic.Pos(0, 0),
+                "RRRDDLLUURRDDDRRDDLLUUR",
+                """
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        """
+                );
+    }
 
+    @Test
+    public void testSomeDiffFieldSize() {
+        tryMoves(8, 4,
+                new Logic.Pos(1, 1),
+                "RRDD",
+                """
+                        oooooooo
+                        ooxxoooo
+                        oooxoooo
+                        oooooooo
+                        """);
+    }
+
+    @Test
+    public void testCoverHugeCircle() {
+        tryMoves(8, 8,
+                new Logic.Pos(0 ,0),
+                "RRRRRRRDDDDDDDLLLLLLLUUUUUUURR",
+                """
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        oooooooo
+                        """);
+    }
+    /* move history for test below
+    * s x x x
+    * x X X x
+    * x _ _ x
+    * x x x x
+    */
+    @Test
+    public void testCoverNotValidCircle() {
+        tryMoves(4, 4,
+                new Logic.Pos(0, 0),
+                "RRDLURR",
+                """
+                        oxxo
+                        oxxo
+                        oooo
+                        oooo
+                        """);
+    }
+    @Test
+    public void testCoverNotValidCircleInCircle() {
+        tryMoves(4, 4,
+                new Logic.Pos(0, 0),
+                "RRDLURRDDDLLLUUURRR",
+                """
+                        oooo
+                        oxxo
+                        oooo
+                        oooo
+                        """);
+    }
 }
