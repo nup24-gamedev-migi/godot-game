@@ -31,6 +31,7 @@ public class View {
     private final Texture exit;
     private final Texture boxImg;
     private final Texture[] grass;
+    private final Texture[] side;
     private final Texture wall;
     private final Texture shadow;
     private final Texture shadowHand;
@@ -45,6 +46,12 @@ public class View {
     private static final float sizeOfBlock = 1 / 10f * 2;
     private static final float wallHeight = 0.8f;
     private final Texture[] traceTexture;
+    private static final Logic.MoveDirection[] dirs = new Logic.MoveDirection[] {
+        Logic.MoveDirection.LEFT,
+        Logic.MoveDirection.RIGHT,
+        Logic.MoveDirection.UP,
+        Logic.MoveDirection.DOWN
+    };
 
     View() {
         playerImg = new Texture("char.png");
@@ -52,6 +59,9 @@ public class View {
 //        grass = new Texture[] { new Texture("boxy.png") };
         grass = IntStream.range(1, 7)
                 .mapToObj(x -> new Texture("grass" + x + ".png"))
+                .toArray(Texture[]::new);
+        side = IntStream.range(1, 4)
+                .mapToObj(x -> new Texture("flooredge" + x + ".png"))
                 .toArray(Texture[]::new);
         wall = new Texture("wall.png");
         debugRenderer =  new ShapeRenderer();
@@ -452,6 +462,60 @@ public class View {
         decalBatch.add(rightWall);
         decalBatch.add(backWall);
     }
+
+    private void drawTileEdge(
+            final int ridx,
+            final Logic.MoveDirection dir,
+            final Vector3 basePos
+    ) {
+        final int off = switch (dir) {
+            case UP -> 0;
+            case RIGHT -> 1;
+            case DOWN -> 2;
+            case LEFT -> 3;
+        };
+        final Decal dec = Decal.newDecal(
+                sizeOfBlock, sizeOfBlock / 3,
+                new TextureRegion(side[(ridx + off) % side.length])
+        );
+        final Vector3 posOff = switch (dir) {
+            case LEFT -> new Vector3(-1, -1 / 3f, 0);
+            case RIGHT -> new Vector3(1, -1 / 3f, 0);
+            case UP -> new Vector3(0, -1 / 3f, -1);
+            case DOWN -> new Vector3(0, -1 / 3f, 1);
+        };
+
+        dec.setColor(0.8f, 0.8f, 0.8f, 1.0f);
+        dec.rotateY((float)(90 * off));
+        dec.setPosition(basePos.cpy().add(posOff.scl(sizeOfBlock / 2)));
+
+        decalBatch.add(dec);
+    }
+
+    private void drawTileEdge(
+            final int ridx,
+            final Logic.MoveDirection dir,
+            final Logic logic,
+            final Logic.Pos pos,
+            final Vector3 basePos
+    ) {
+        final Logic.Pos checkPos = pos.applyDir(dir);
+        final Logic.Cell cell = logic.getCell(checkPos.x, checkPos.y);
+
+        if (cell == null) {
+            return;
+        }
+
+        if (
+            cell.type != Logic.CellType.FLOOR &&
+            cell.type != Logic.CellType.ENTRANCE &&
+            cell.type != Logic.CellType.TREASURE
+        ) {
+            return;
+        }
+
+        drawTileEdge(ridx, dir, basePos);
+    }
     
     private void drawField(final Logic logic) {
         for (int y = 0; y < logic.getFieldHeight(); y++) {
@@ -460,6 +524,8 @@ public class View {
                         new Logic.Pos(x, y)
                 ).add(sizeOfBlock / 2, -1, sizeOfBlock / 2);
                 final Logic.Cell cell = logic.getCell(x, y);
+                final int ridx = (x << 16) ^ y;
+                final Logic.Pos cellLogPos = new Logic.Pos(x, y);
 
                 final Texture tileTexture = switch (cell.type) {
                     case FLOOR, TREASURE -> grass[((x << 16) ^ y) % grass.length];
@@ -468,6 +534,9 @@ public class View {
                 };
 
                 if (tileTexture == null) {
+                    for (final Logic.MoveDirection dir : dirs) {
+                        drawTileEdge(ridx, dir, logic, cellLogPos, currentCellPos);
+                    }
                     continue;
                 }
 

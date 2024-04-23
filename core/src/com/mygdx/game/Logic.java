@@ -117,6 +117,10 @@ public class Logic {
     }
 
     public Cell getCell(final int x, final int y) {
+        if (x < 0) { return null; }
+        if (y < 0) { return null; }
+        if (x >= fieldWidth) { return null; }
+        if (y >= fieldHeight) { return null; }
         return field[y][x];
     }
 
