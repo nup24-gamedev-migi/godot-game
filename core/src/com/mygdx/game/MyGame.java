@@ -9,25 +9,43 @@ import java.util.Map;
 public class MyGame extends ApplicationAdapter {
     private View view;
     private Logic logic;
+    private int levelNumber;
 
 
-    private final String[][][] level = new String[][][] {
+    private final String[][][] levels = new String[][][] {
+            {
+                    {"x", "x", "x", "x", "x"},
+                    {"x", "o", "o", "t", "x"},
+                    {"x", "o", "o", "o", "x"},
+                    {"x", "e", "o", "o", "x"},
+                    {"x", "x", "x", "x", "x"}
+            },
+            {
+                    {"x", "x", "x", "x", "x"},
+                    {"x", "o", "o", "o", "x"},
+                    {"e", "o", "x", "o", "t"},
+                    {"x", "o", "o", "o", "x"},
+                    {"x", "x", "x", "x", "x"}
+            },
             {
                     {"x", "x", "x", "x", "x", "x", "x"},
-                    {"x", "o", "o", "o", "o", "t", "x"},
-                    {"x", "o", "o", "o", "o", "o", "x"},
-                    {"x", "o", "o", "o", "o", "o", "x"},
-                    {"x", "o", "o", "o", "o", "o", "x"},
-                    {"x", "e", "o", "o", "o", "o", "x"},
+                    {"x", "o", "o", "o", "o", "o", "o"},
+                    {"e", "o", "b", "o", "o", "x", "t"},
+                    {"x", "o", "o", "o", "o", "x", "o"},
                     {"x", "x", "x", "x", "x", "x", "x"}
             },
             {
                     {"x", "x", "x", "x", "x", "x", "x"},
+                    {"x", "o", "b", "x", "o", "o", "x"},
                     {"e", "o", "o", "o", "o", "o", "t"},
-                    {"x", "o", "o", "o", "o", "o", "x"},
-                    {"x", "o", "o", "o", "o", "o", "x"},
-                    {"x", "o", "o", "o", "o", "o", "x"},
-                    {"x", "o", "o", "o", "o", "o", "x"},
+                    {"x", "o", "o", "x", "b", "o", "x"},
+                    {"x", "x", "x", "x", "x", "x", "x"}
+            },
+            {
+                    {"x", "x", "x", "x", "x", "x", "x"},
+                    {"x", "o", "o", "b", "x", "o", "x"},
+                    {"e", "o", "b", "b", "x", "o", "t"},
+                    {"x", "o", "o", "o", "x", "o", "x"},
                     {"x", "x", "x", "x", "x", "x", "x"}
             },
             {
@@ -58,7 +76,8 @@ public class MyGame extends ApplicationAdapter {
     @Override
     public void create() {
 //        logic = new Logic(loadField(), thingTypeMap);
-        logic = loadHardcodedLevelAndGenerateLogic(1);
+        levelNumber = 1;
+        logic = loadHardcodedLevelAndGenerateLogic();
         view = new View();
 
         InputProcessor inputProcessor = new InputProcessor() {
@@ -86,19 +105,38 @@ public class MyGame extends ApplicationAdapter {
                         break;
                     }
                     case Input.Keys.NUM_1: {
-                        logic = loadHardcodedLevelAndGenerateLogic(1);
+                        levelNumber = 1;
+                        logic = loadHardcodedLevelAndGenerateLogic();
                         break;
                     }
                     case Input.Keys.NUM_2: {
-                        logic = loadHardcodedLevelAndGenerateLogic(2);
+                        levelNumber = 2;
+                        logic = loadHardcodedLevelAndGenerateLogic();
                         break;
                     }
                     case Input.Keys.NUM_3: {
-                        logic = loadHardcodedLevelAndGenerateLogic(3);
+                        levelNumber = 3;
+                        logic = loadHardcodedLevelAndGenerateLogic();
                         break;
                     }
                     case Input.Keys.NUM_4: {
-                        logic = loadHardcodedLevelAndGenerateLogic(4);
+                        levelNumber = 4;
+                        logic = loadHardcodedLevelAndGenerateLogic();
+                        break;
+                    }
+                    case Input.Keys.NUM_5: {
+                        levelNumber = 5;
+                        logic = loadHardcodedLevelAndGenerateLogic();
+                        break;
+                    }
+                    case Input.Keys.NUM_6: {
+                        levelNumber = 6;
+                        logic = loadHardcodedLevelAndGenerateLogic();
+                        break;
+                    }
+                    case Input.Keys.NUM_7: {
+                        levelNumber = 7;
+                        logic = loadHardcodedLevelAndGenerateLogic();
                         break;
                     }
                 }
@@ -158,8 +196,8 @@ public class MyGame extends ApplicationAdapter {
     }
 
     // for now this function is god killer
-    Logic loadHardcodedLevelAndGenerateLogic(int n) {
-        final String[][] levelTemplate = level[n - 1];
+    Logic loadHardcodedLevelAndGenerateLogic() {
+        final String[][] levelTemplate = levels[levelNumber - 1];
         Logic.CellType[][] field;
         HashMap<Logic.Pos, Logic.ThingType> objectsOnField = new LinkedHashMap<>();
 
@@ -197,10 +235,24 @@ public class MyGame extends ApplicationAdapter {
         return new Logic(field, objectsOnField);
     }
 
+    public void switchToNextLevel() {
+        int maxLevelNumber = levels.length;
+        if (levelNumber >= maxLevelNumber) {
+            levelNumber = maxLevelNumber;
+        } else {
+            levelNumber += 1;
+        }
+
+        logic = loadHardcodedLevelAndGenerateLogic();
+    }
+
 
     @Override
     public void render() {
         view.view(logic);
+        if (logic.isTreasureStolen() && logic.isPlayerAtEntrace()) {
+            switchToNextLevel();
+        }
     }
 
     @Override

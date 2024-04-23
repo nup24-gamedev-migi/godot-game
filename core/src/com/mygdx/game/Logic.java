@@ -172,9 +172,14 @@ public class Logic {
         return Collections.unmodifiableList(history);
     }
 
-    public boolean getIsTreasureStolen() {
+    public boolean isTreasureStolen() {
         return isTreasureStolen;
     }
+
+    public boolean isPlayerAtEntrace() {
+        return getCell(playerPos.x, playerPos.y).type == CellType.ENTRANCE;
+    }
+
 
     public void movePlayer(final MoveDirection dir) {
         if (moveThing(playerPos, dir)) {
