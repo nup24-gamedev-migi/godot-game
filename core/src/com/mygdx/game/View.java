@@ -1,9 +1,7 @@
 package com.mygdx.game;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -19,6 +17,7 @@ import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 
 import java.util.*;
@@ -29,7 +28,7 @@ public class View {
     private final ShapeRenderer debugRenderer;
     private final SpriteBatch batch;
     private final Texture playerImg;
-    private final Texture badLogic64;
+    private final Texture exit;
     private final Texture boxImg;
     private final Texture[] grass;
     private final Texture wall;
@@ -40,7 +39,7 @@ public class View {
     /* Resources for the don't starve look */
     private final ModelBatch modelBatch;
     private List<Model> shadowModels;
-    private final PerspectiveCamera cam;
+    private final Camera cam;
     private final DecalBatch decalBatch;
 
     private static final float sizeOfBlock = 1 / 10f * 2;
@@ -59,8 +58,8 @@ public class View {
         batch = new SpriteBatch();
         shadow = new Texture("shadow4.png");
         shadowHand = new Texture("shadowhand2.png");
-        chest = new Texture("chest-2.png");
-        badLogic64 = new Texture("badlogic64.jpg");
+        chest = new Texture("chest.png");
+        exit = new Texture("trapdoor.png");
         traceTexture = IntStream.range(1, 4)
                 .mapToObj(x -> new Texture("trace" + x + ".png"))
                 .toArray(Texture[]::new);
@@ -104,38 +103,58 @@ public class View {
         }
         modelBatch.end();
         
-	model.allThings().forEach(entry -> {
-            final Logic.Pos lPos = entry.getKey();
-            Vector3 pos = logicToDisplay(lPos).add(sizeOfBlock / 2f, -1f + sizeOfBlock / 2f, sizeOfBlock / 2f);
+	    model.allThings().forEach(entry -> {
             final Logic.ThingType ty = entry.getValue();
-            final Texture img;
-            switch (ty) {
-                case PLAYER:
-                    img = playerImg;
-                    break;
-                case BOX:
-                    pos = pos.add(0, 0, sizeOfBlock / 2f);
-                    img = boxImg;
-                    break;
-                default:
-                    img = null;
-            }
-            final Decal dec = Decal.newDecal(sizeOfBlock, sizeOfBlock, new TextureRegion(img));
-            if (ty == Logic.ThingType.PLAYER) {
-                dec.setScale(2f);
-                pos = pos.add(0, sizeOfBlock / 2f, sizeOfBlock / 2f - 0.08f);
-            } else {
-                dec.setScaleY(1.5f);
-                pos = pos.add(0, sizeOfBlock / 4f, 0);
-            }
-            dec.setBlending(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            final Texture img = switch (ty) {
+                case PLAYER -> playerImg;
+                case BOX -> boxImg;
+            };
+            final float shiftAlongFloor = switch (ty) {
+                case PLAYER -> 0f;
+                case BOX -> sizeOfBlock / 2;
+            };
+            final float scale = switch (ty) {
+                case PLAYER -> 2f;
+                case BOX -> 1f;
+            };
+            final boolean billboard = switch (ty) {
+                case PLAYER -> false;
+                case BOX -> true;
+            };
 
-            dec.setPosition(pos);
-//            dec.lookAt(cam.position, cam.up);
-
-            decalBatch.add(dec);
+            drawThing(
+                    scale,
+                    billboard,
+                    entry.getKey(),
+                    new TextureRegion(img),
+                    shiftAlongFloor
+            );
         });
+
         decalBatch.flush();
+    }
+
+    private void drawThing(
+            final float scale,
+            final boolean billboard,
+            final Logic.Pos lPos,
+            final TextureRegion tex,
+            final float shiftAlongFloor
+    ) {
+        Vector3 pos = logicToDisplay(lPos)
+                .add(sizeOfBlock / 2f, -1f + sizeOfBlock / 2f, sizeOfBlock / 2f)
+                .add(0, 0, shiftAlongFloor);
+        final Decal dec = Decal.newDecal(sizeOfBlock, sizeOfBlock, tex);
+        dec.setBlending(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        dec.setPosition(pos);
+        dec.setScale(scale);
+        dec.transformationOffset = new Vector2(0, -sizeOfBlock / 2);
+        if (billboard) {
+            dec.lookAt(cam.position, cam.up);
+        }
+
+        decalBatch.add(dec);
     }
     
     private static Vector3 shadowWiggle(final Random rand) {
@@ -443,10 +462,9 @@ public class View {
                 final Logic.Cell cell = logic.getCell(x, y);
 
                 final Texture tileTexture = switch (cell.type) {
-                    case FLOOR -> grass[((x << 16) ^ y) % grass.length];
+                    case FLOOR, TREASURE -> grass[((x << 16) ^ y) % grass.length];
                     case WALL -> null;
-                    case ENTRANCE -> badLogic64;
-                    case TREASURE -> logic.isTreasureStolen() ? grass[((x << 16) ^ y) % grass.length] : chest;
+                    case ENTRANCE -> exit;
                 };
 
                 if (tileTexture == null) {
@@ -459,7 +477,19 @@ public class View {
                 );
                 dec.rotateX(-90);
                 dec.setPosition(currentCellPos);
+
                 decalBatch.add(dec);
+
+                /* exception for the chest */
+                if (!logic.isTreasureStolen() && cell.type == Logic.CellType.TREASURE) {
+                    drawThing(
+                            1.3f,
+                            true,
+                            new Logic.Pos(x, y),
+                            new TextureRegion(chest),
+                            sizeOfBlock / 2
+                    );
+                }
             }
         }
     }
