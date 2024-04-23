@@ -28,7 +28,7 @@ public class View {
     private final ShapeRenderer debugRenderer;
     private final SpriteBatch batch;
     private final Texture playerImg;
-    private final Texture badLogic64;
+    private final Texture exit;
     private final Texture boxImg;
     private final Texture[] grass;
     private final Texture wall;
@@ -59,7 +59,7 @@ public class View {
         shadow = new Texture("shadow4.png");
         shadowHand = new Texture("shadowhand2.png");
         chest = new Texture("chest.png");
-        badLogic64 = new Texture("badlogic64.jpg");
+        exit = new Texture("trapdoor.png");
         traceTexture = IntStream.range(1, 4)
                 .mapToObj(x -> new Texture("trace" + x + ".png"))
                 .toArray(Texture[]::new);
@@ -464,7 +464,7 @@ public class View {
                 final Texture tileTexture = switch (cell.type) {
                     case FLOOR, TREASURE -> grass[((x << 16) ^ y) % grass.length];
                     case WALL -> null;
-                    case ENTRANCE -> badLogic64;
+                    case ENTRANCE -> exit;
                 };
 
                 if (tileTexture == null) {
@@ -477,6 +477,7 @@ public class View {
                 );
                 dec.rotateX(-90);
                 dec.setPosition(currentCellPos);
+
                 decalBatch.add(dec);
 
                 /* exception for the chest */
