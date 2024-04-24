@@ -100,6 +100,10 @@ public class MyGame extends ApplicationAdapter {
                         logic.movePlayer(Logic.MoveDirection.DOWN);
                         break;
                     }
+                    case Input.Keys.R: {
+                        logic = loadHardcodedLevelAndGenerateLogic();
+                        break;
+                    }
 //                    case Input.Keys.K: {
 //                        logic.applyShadowToField();
 //                        break;
