@@ -117,6 +117,10 @@ public class Logic {
     }
 
     public Cell getCell(final int x, final int y) {
+        if (x < 0) { return null; }
+        if (y < 0) { return null; }
+        if (x >= fieldWidth) { return null; }
+        if (y >= fieldHeight) { return null; }
         return field[y][x];
     }
 
@@ -126,8 +130,9 @@ public class Logic {
     private final int fieldWidth;
     private final int fieldHeight;
     private final List<Pair> history;
-
     private boolean isTreasureStolen; // update this when loading new level
+
+    private static boolean doBoxDrop = true;
 
     public Logic(final CellType[][] field, final Map<Pos, ThingType> thingTypeMap) {
         history = new ArrayList<>();
@@ -167,9 +172,14 @@ public class Logic {
         return Collections.unmodifiableList(history);
     }
 
-    public boolean getIsTreasureStolen() {
+    public boolean isTreasureStolen() {
         return isTreasureStolen;
     }
+
+    public boolean isPlayerAtEntrace() {
+        return getCell(playerPos.x, playerPos.y).type == CellType.ENTRANCE;
+    }
+
 
     public void movePlayer(final MoveDirection dir) {
         if (moveThing(playerPos, dir)) {
@@ -299,7 +309,7 @@ public class Logic {
             return true; // Might want to return false
         }
 
-        if (!posValid(newThingPos)) {
+        if (!posValid(newThingPos, thingTypeMap.get(thingPos))) {
             return false;
         }
 
@@ -310,21 +320,26 @@ public class Logic {
 
         /* Obstacle at newPos. Let's try to push it away */
         final Pos obstacleNewPos = newThingPos.applyDir(dir);
-        if (!posValid(obstacleNewPos)) {
+        if (!posValid(obstacleNewPos, thingTypeMap.get(newThingPos))) {
             return false;
         }
         if (thingTypeMap.containsKey(obstacleNewPos)) {
             return false;
         }
 
-        thingTypeMap.put(obstacleNewPos, thingTypeMap.remove(newThingPos));
+        final ThingType obstacle = thingTypeMap.remove(newThingPos);
+        if (getCell(obstacleNewPos.x, obstacleNewPos.y).type != CellType.WALL) {
+            thingTypeMap.put(obstacleNewPos, obstacle);
+        } else {
+            getCell(obstacleNewPos.x, obstacleNewPos.y).type = CellType.FLOOR;
+        }
         thingTypeMap.put(newThingPos, thingTypeMap.remove(thingPos));
 
         return true;
     }
 
     /* Function checks that you can go or slide a box on this position. */
-    private boolean posValid(final Pos pos) {
+    private boolean posValid(final Pos pos, final ThingType ty) {
         if (pos.x < 0 || pos.y < 0) {
             return false;
         }
@@ -336,7 +351,10 @@ public class Logic {
         final Cell cell = getCell(pos.x, pos.y);
 
         if (cell.type == CellType.WALL) {
-            return false;
+            if (ty == null) {
+                return false;
+            }
+            return ty == ThingType.BOX && doBoxDrop;
         }
 
         return !cell.hasShadow;
