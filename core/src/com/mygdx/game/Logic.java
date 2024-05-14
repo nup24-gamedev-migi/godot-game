@@ -116,6 +116,10 @@ public class Logic {
     }
 
     public Cell getCell(final int x, final int y) {
+        if (x < 0) { return null; }
+        if (y < 0) { return null; }
+        if (x >= fieldWidth) { return null; }
+        if (y >= fieldHeight) { return null; }
         return field[y][x];
     }
 
@@ -167,9 +171,14 @@ public class Logic {
         return Collections.unmodifiableList(history);
     }
 
-    public boolean getIsTreasureStolen() {
+    public boolean isTreasureStolen() {
         return isTreasureStolen;
     }
+
+    public boolean isPlayerAtEntrace() {
+        return getCell(playerPos.x, playerPos.y).type == CellType.ENTRANCE;
+    }
+
 
     public void movePlayer(final MoveDirection dir) {
         if (moveThing(playerPos, dir)) {

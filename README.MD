@@ -36,4 +36,4 @@ If you have JetBrains IDEA -- you can easily run the tests. Otherwise, use the f
 command:
 
 * On Windows run `gradlew.bat test`
-* On Linux/MacOs run `./gradlew test`
+* On Linux/MacOs run `./gradlew test`.
