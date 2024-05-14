@@ -8,7 +8,7 @@ public class Logic {
     // TODO things probably should be made into classes
 
     // TODO make it generic!!!!!
-    public class Pair {
+    public static class Pair {
         public Pos pos;
         public MoveDirection dir;
         Pair(Pos pos, MoveDirection dir) {
@@ -103,8 +103,7 @@ public class Logic {
             if (getClass() != obj.getClass()) return false;
             Pos other = (Pos)obj;
             if (x != other.x) return false;
-            if (y != other.y) return false;
-            return true;
+          return y == other.y;
         }
     }
 

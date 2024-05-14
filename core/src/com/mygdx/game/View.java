@@ -140,9 +140,9 @@ public class View {
     
     private static Vector3 shadowWiggle(final Random rand) {
         return new Vector3(
-                0.10f * sizeOfBlock / 2 * rand.nextFloat(-1, 1),
+                0.10f * sizeOfBlock / 2 * (2 * rand.nextFloat() - 1),
                 0,
-                0.10f * sizeOfBlock / 2 * rand.nextFloat(-1, 1)
+                0.10f * sizeOfBlock / 2 * (2 * rand.nextFloat() - 1)
         );
     }
 
@@ -219,9 +219,9 @@ public class View {
             final Vector3 perpNo = new Vector3(dir.z, 0, -dir.x);
             final Vector3 perp = new Vector3(dir.z, 0, -dir.x)
                     .scl(sizeOfBlock / 2);
-            final Vector3 ranoff = dir.cpy().scl(0.3f * sizeOfBlock / 2 * rand.nextFloat(0.2f, 1))
+            final Vector3 ranoff = dir.cpy().scl(0.3f * sizeOfBlock / 2 * ( Math.min( rand.nextFloat() + 0.2f, 1)))
                     .add(perpNo.scl( sizeOfBlock / 2 * (
-                            (0.3f * rand.nextFloat(0, 1) + 0.2f) *
+                            (0.3f * rand.nextFloat() + 0.2f) *
                                     (rand.nextBoolean() ? -1 : 1)
                     )));
             final Vector3 off = dir.cpy().scl(sizeOfBlock / 2 * 0.2f);
@@ -260,9 +260,9 @@ public class View {
             final Vector3 perpNo = new Vector3(dir.z, 0, -dir.x);
             final Vector3 perp = new Vector3(dir.z, 0, -dir.x)
                     .scl(sizeOfBlock / 2);
-            final Vector3 ranoff = dir.cpy().scl(0.3f * sizeOfBlock / 2 * rand.nextFloat(0.2f, 1))
+            final Vector3 ranoff = dir.cpy().scl(0.3f * sizeOfBlock / 2 * ( Math.min( rand.nextFloat() + 0.2f, 1)))
                     .add(perpNo.scl( sizeOfBlock / 2 * (
-                            (0.3f * rand.nextFloat(0, 1) + 0.2f) *
+                            (0.3f * rand.nextFloat() + 0.2f) *
                                     (rand.nextBoolean() ? -1 : 1)
                     )));
             final Vector3 off = dir.cpy().scl(sizeOfBlock / 2 * 0.2f);
@@ -309,9 +309,9 @@ public class View {
         final Vector3 perpNo = new Vector3(dir.z, 0, -dir.x);
         final Vector3 perp = new Vector3(dir.z, 0, -dir.x)
                 .scl(sizeOfBlock / 2);
-        final Vector3 ranoff = dir.cpy().scl(0.3f * sizeOfBlock / 2 * rand.nextFloat(0.2f, 1))
+        final Vector3 ranoff = dir.cpy().scl(0.3f * sizeOfBlock / 2 * ( Math.min( rand.nextFloat() + 0.2f, 1)))
                 .add(perpNo.scl( sizeOfBlock / 2 * (
-                        (0.3f * rand.nextFloat(0, 1) + 0.2f) *
+                        (0.3f * rand.nextFloat() + 0.2f) *
                                 (rand.nextBoolean() ? -1 : 1)
                 )));
         final Vector3 off = dir.cpy().scl(sizeOfBlock / 2 * 0.2f);
@@ -365,9 +365,18 @@ public class View {
             dec.setPosition(tracePos);
 
             switch (pair.dir) {
-                case DOWN -> dec.rotateZ(-90);
-                case LEFT -> dec.rotateZ(180);
-                case UP -> dec.rotateZ(90);
+                case DOWN: {
+                    dec.rotateZ(-90);
+                    break;
+                }
+                case LEFT: {
+                    dec.rotateZ(180);
+                    break;
+                }
+                case UP: {
+                    dec.rotateZ(90);
+                    break;
+                }
             }
 
             decalBatch.add(dec);
@@ -427,12 +436,28 @@ public class View {
                 ).add(sizeOfBlock / 2, -1, sizeOfBlock / 2);
                 final Logic.Cell cell = logic.getCell(x, y);
 
-                final Texture tileTexture = switch (cell.type) {
-                    case FLOOR -> grass[((x << 16) ^ y) % grass.length];
-                    case WALL -> null;
-                    case ENTRANCE -> badLogic64;
-                    case TREASURE -> logic.getIsTreasureStolen() ? grass[((x << 16) ^ y) % grass.length] : chest;
-                };
+                final Texture tileTexture;
+                switch (cell.type) {
+                    case FLOOR: {
+                        tileTexture = grass[((x << 16) ^ y) % grass.length];
+                        break;
+                    }
+                    case WALL: {
+                        tileTexture = null;
+                        break;
+                    }
+                    case ENTRANCE: {
+                        tileTexture = badLogic64;
+                        break;
+                    }
+                    case TREASURE: {
+                        tileTexture = logic.getIsTreasureStolen() ? grass[((x << 16) ^ y) % grass.length] : chest;
+                        break;
+                    }
+                    default: {
+                        tileTexture = null;
+                    }
+                }
 
                 if (tileTexture == null) {
                     continue;

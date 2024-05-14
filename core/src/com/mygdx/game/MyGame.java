@@ -4,7 +4,6 @@ import com.badlogic.gdx.*;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class MyGame extends ApplicationAdapter {
     private View view;
