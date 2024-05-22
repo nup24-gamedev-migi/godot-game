@@ -222,7 +222,6 @@ public class Logic {
 
     for (int i = 0; i < history.size() - 1; i++) {
       Pos currentCellPos = history.get(i).pos;
-//            getCell(currentCellPos.x, currentCellPos.y).hasShadow = true; TODO (move to another place!)
       if (visited[currentCellPos.y][currentCellPos.x] == CellState.UNVISITED) {
         visited[currentCellPos.y][currentCellPos.x] = CellState.VISITED;
       } else if (visited[currentCellPos.y][currentCellPos.x] == CellState.VISITED) {
@@ -243,8 +242,9 @@ public class Logic {
           }
         }
       }
-      isTreasureStolen = true;
     }
+    isTreasureStolen = true;
+
     for (Pair record : history) {
       Pos curPos = record.pos;
       if (visited[curPos.y][curPos.x] == CellState.VISITED) {
@@ -323,7 +323,8 @@ public class Logic {
   private boolean checkIfCycleIsRectangle(int historyIndexOfStartLower,
                                           int historyIndexOfEndUpper) {
     int numberOfChangeDir = 0;
-
+    // There we count a number of change directions on the cycle.
+    // If this number is bigger than 5 - this is not a valid cycle.
     for (int i = historyIndexOfStartLower + 1; i <= historyIndexOfEndUpper; i++) {
       if (! history.get(i - 1).dir.equals( history.get(i).dir)) {
         numberOfChangeDir++;
