@@ -131,6 +131,7 @@ public class Logic {
     private final int fieldHeight;
     private final List<Pair> history;
     private boolean isTreasureStolen; // update this when loading new level
+    private static boolean isGameOver;
 
     private static boolean doBoxDrop = true;
 
@@ -182,9 +183,16 @@ public class Logic {
 
 
     public void movePlayer(final MoveDirection dir) {
+        if (isGameOver) {
+            return;
+        }
+
         if (moveThing(playerPos, dir)) {
             playerPos = playerPos.applyDir(dir);
             history.add(new Pair(playerPos, dir));
+            if (getCell(playerPos.x, playerPos.y).hasShadow) {
+                isGameOver = true;
+            }
             if (getCell(playerPos.x, playerPos.y).type == CellType.TREASURE && ! isTreasureStolen) {
                 applyShadowToField();
             }
@@ -357,6 +365,6 @@ public class Logic {
             return ty == ThingType.BOX && doBoxDrop;
         }
 
-        return !cell.hasShadow;
+        return true; // Can step in the shadow
     }
 }
