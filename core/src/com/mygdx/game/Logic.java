@@ -159,16 +159,6 @@ public class Logic {
     return field[y][x];
   }
 
-  private final Map<Pos, ThingType> thingTypeMap;
-  private final Cell[][] field;
-  private Pos playerPos;
-  private final int fieldWidth;
-  private final int fieldHeight;
-  private final List<Pair> history;
-  private boolean isTreasureStolen; // update this when loading new level
-
-  private static boolean doBoxDrop = true;
-
   public Logic(final CellType[][] field, final Map<Pos, ThingType> thingTypeMap) {
     history = new ArrayList<>();
     playerPos = findPlayerPos(field);
