@@ -110,6 +110,7 @@ public class Logic {
       return result;
     }
 
+
     @Override
     public boolean equals(Object obj) {
       if (this == obj) return true;
@@ -121,6 +122,18 @@ public class Logic {
       return true;
     }
   }
+
+  private final Map<Pos, ThingType> thingTypeMap;
+  private final Cell[][] field;
+  private Pos playerPos;
+  private final int fieldWidth;
+  private final int fieldHeight;
+  private final List<Pair> history;
+  private boolean isTreasureStolen; // update this when loading new level
+  private static boolean isGameOver;
+
+  private static boolean doBoxDrop = true;
+
 
   public int getFieldWidth() {
     return fieldWidth;
@@ -204,13 +217,20 @@ public class Logic {
 
 
   public void movePlayer(final MoveDirection dir) {
-    if (moveThing(playerPos, dir)) {
-      playerPos = playerPos.applyDir(dir);
-      history.add(new Pair(playerPos, dir));
-      if (getCell(playerPos.x, playerPos.y).type == CellType.TREASURE && !isTreasureStolen) {
-        applyShadowToField();
+      if (isGameOver) {
+          return;
       }
-    }
+
+      if (moveThing(playerPos, dir)) {
+          playerPos = playerPos.applyDir(dir);
+          history.add(new Pair(playerPos, dir));
+          if (getCell(playerPos.x, playerPos.y).hasShadow) {
+              isGameOver = true;
+          }
+          if (getCell(playerPos.x, playerPos.y).type == CellType.TREASURE && ! isTreasureStolen) {
+              applyShadowToField();
+          }
+      }
   }
 
   // TODO should be private and called when treasure was stolen.
@@ -397,23 +417,23 @@ public class Logic {
 
   /* Function checks that you can go or slide a box on this position. */
   private boolean posValid(final Pos pos, final ThingType ty) {
-    if (pos.x < 0 || pos.y < 0) {
-      return false;
-    }
-
-    if (pos.x >= fieldWidth || pos.y >= fieldHeight) {
-      return false;
-    }
-
-    final Cell cell = getCell(pos.x, pos.y);
-
-    if (cell.type == CellType.WALL) {
-      if (ty == null) {
-        return false;
+      if (pos.x < 0 || pos.y < 0) {
+          return false;
       }
-      return ty == ThingType.BOX && doBoxDrop;
-    }
 
-    return !cell.hasShadow;
+      if (pos.x >= fieldWidth || pos.y >= fieldHeight) {
+          return false;
+      }
+
+      final Cell cell = getCell(pos.x, pos.y);
+
+      if (cell.type == CellType.WALL) {
+          if (ty == null) {
+              return false;
+          }
+          return ty == ThingType.BOX && doBoxDrop;
+      }
+
+      return true; // Can step in the shadow
   }
 }
