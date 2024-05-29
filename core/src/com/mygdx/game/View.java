@@ -36,6 +36,7 @@ public class View {
   private final Texture shadow;
   private final Texture shadowHand;
   private final Texture chest;
+  private final Texture gameOver;
 
   /* Resources for the don't starve look */
   private final ModelBatch modelBatch;
@@ -46,7 +47,7 @@ public class View {
   private static final float sizeOfBlock = 1 / 10f * 2;
   private static final float wallHeight = 0.8f;
   private final Texture[] traceTexture;
-  private static final Logic.MoveDirection[] dirs = new Logic.MoveDirection[]{
+  private static final Logic.MoveDirection[] dirs = new Logic.MoveDirection[] {
           Logic.MoveDirection.LEFT,
           Logic.MoveDirection.RIGHT,
           Logic.MoveDirection.UP,
@@ -64,7 +65,7 @@ public class View {
             .mapToObj(x -> new Texture("flooredge" + x + ".png"))
             .toArray(Texture[]::new);
     wall = new Texture("wall.png");
-    debugRenderer = new ShapeRenderer();
+    debugRenderer =  new ShapeRenderer();
     batch = new SpriteBatch();
     shadow = new Texture("shadow4.png");
     shadowHand = new Texture("shadowhand2.png");
@@ -73,6 +74,7 @@ public class View {
     traceTexture = IntStream.range(1, 4)
             .mapToObj(x -> new Texture("trace" + x + ".png"))
             .toArray(Texture[]::new);
+    gameOver = new Texture("gameover.png");
 
     modelBatch = new ModelBatch();
     cam = new PerspectiveCamera(30, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -90,6 +92,22 @@ public class View {
     Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
+    if (model.isGameOver()) {
+      cam.position.set(0,0,1f);
+      cam.lookAt(0, 0, 0);
+      cam.update();
+
+      final Decal dec = Decal.newDecal(
+              1.5f, 1,
+              new TextureRegion(gameOver)
+      );
+      dec.setPosition(0,0,-2);
+      decalBatch.add(dec);
+      decalBatch.flush();
+
+      return;
+    }
+
     drawField(model);
     drawWalls(model);
     drawPlayerTrace(model);
@@ -102,7 +120,17 @@ public class View {
               .stream()
               .map(x -> buildShadow(x, shadow, shadowHand))
               .collect(Collectors.toList());
+    } else if (model.isScrollingShadow()) {
+      shadowModels = buildShadowSegments(model)
+              .stream()
+              .map(x -> buildShadow(x, shadow, shadowHand))
+              .collect(Collectors.toList());
+      shadowModels.stream()
+              .map(ModelInstance::new)
+              .forEach(modelBatch::render);
+      modelBatch.end();
     }
+
     if (!shadowModels.isEmpty() && model.isTreasureStolen()) {
       shadowModels.stream()
               .map(ModelInstance::new)
@@ -111,33 +139,37 @@ public class View {
       shadowModels.forEach(Model::dispose);
       shadowModels.clear();
     }
-    modelBatch.end();
+
+    if (!model.isScrollingShadow()) {
+      modelBatch.end();
+    }
 
     model.allThings().forEach(entry -> {
       final Logic.ThingType ty = entry.getValue();
       final Texture img;
-      final float shiftAlongFloor;
-      final float scale;
-      final boolean billboard;
-
       switch (ty) {
-        case PLAYER: {
-          img = playerImg;
-          shiftAlongFloor = 0f;
-          scale = 2f;
-          billboard = false;
-          break;
-        }
-        case BOX: {
-          img = boxImg;
-          shiftAlongFloor = sizeOfBlock / 2;
-          scale = 1f;
-          billboard = true;
-          break;
-        }
-        default:
-          throw new IllegalStateException("Unknown thing type!");
-      }
+        case PLAYER: img = playerImg; break;
+        case BOX: img = boxImg; break;
+        default: img = null;
+      };
+      final float shiftAlongFloor;
+      switch (ty) {
+        case PLAYER: shiftAlongFloor = 0f; break;
+        case BOX: shiftAlongFloor = sizeOfBlock / 2; break;
+        default: shiftAlongFloor = 0;
+      };
+      final float scale;
+      switch (ty) {
+        case PLAYER: scale = 2f; break;
+        case BOX: scale = 1f; break;
+        default: scale = 0f;
+      };
+      final boolean billboard;
+      switch (ty) {
+        case PLAYER: billboard = false; break;
+        case BOX: billboard = true; break;
+        default: billboard = false;
+      };
 
       drawThing(
               scale,
@@ -193,7 +225,9 @@ public class View {
     final List<Logic.Pair> history = logic.getHistory();
     for (int i = 0; i < history.size(); i++) {
       final Logic.Pos pos = history.get(i).pos;
-      if (logic.getCell(pos.x, pos.y).hasShadow) {
+      //            final boolean hasShadow = logic.getCell(pos.x, pos.y).hasShadow;
+      final boolean hasShadow = logic.getVst(pos.x, pos.y) == Logic.CellState.VISITED;
+      if (hasShadow) {
         return i;
       }
     }
@@ -201,7 +235,7 @@ public class View {
   }
 
   private boolean isDir(final Logic.Pos l, final Logic.Pos r) {
-    return l.equals(r.applyDir(Logic.MoveDirection.LEFT)) ||
+    return  l.equals(r.applyDir(Logic.MoveDirection.LEFT)) ||
             l.equals(r.applyDir(Logic.MoveDirection.RIGHT)) ||
             l.equals(r.applyDir(Logic.MoveDirection.DOWN)) ||
             l.equals(r.applyDir(Logic.MoveDirection.UP));
@@ -219,9 +253,11 @@ public class View {
 
     res.add(new ArrayList<>(Collections.singleton(prev[0])));
 
-    logic.getHistory().stream().skip(startIndex + 1).forEach(pair -> {
+    logic.getHistory().stream().limit(logic.getShadowScroll()).skip(startIndex+1).forEach(pair -> {
       final Logic.Pos end = pair.pos;
-      if (!logic.getCell(end.x, end.y).hasShadow) {
+//            final boolean hasShadow = logic.getCell(end.x, end.y).hasShadow;
+      final boolean hasShadow = logic.getVst(end.x, end.y) == Logic.CellState.VISITED;
+      if (!hasShadow) {
         return;
       }
 
@@ -383,7 +419,7 @@ public class View {
   }
 
   private void drawPlayerTrace(final Logic logic) {
-    if (logic.isTreasureStolen()) {
+    if (logic.isTreasureStolen() || logic.isScrollingShadow()) {
       return;
     }
 
@@ -416,18 +452,9 @@ public class View {
       dec.setPosition(tracePos);
 
       switch (pair.dir) {
-        case DOWN: {
-          dec.rotateZ(-90);
-          break;
-        }
-        case LEFT: {
-          dec.rotateZ(180);
-          break;
-        }
-        case UP: {
-          dec.rotateZ(90);
-          break;
-        }
+        case DOWN: dec.rotateZ(-90); break;
+        case LEFT: dec.rotateZ(180); break;
+        case UP: dec.rotateZ(90); break;
       }
 
       decalBatch.add(dec);
@@ -440,37 +467,37 @@ public class View {
     final Vector3 center = fieldCenter(logic);
 
     final Decal leftWall = Decal.newDecal(
-            (float) height * sizeOfBlock,
+            (float)height * sizeOfBlock,
             wallHeight,
             new TextureRegion(wall) // TODO improve
     );
     leftWall.rotateY(90);
     leftWall.setPosition(
             logicToDisplay(new Logic.Pos(0, 0)).x,
-            wallHeight / 2f - 1f,
+            wallHeight/2f - 1f,
             center.z
     );
 
     final Decal rightWall = Decal.newDecal(
-            (float) height * sizeOfBlock,
+            (float)height * sizeOfBlock,
             wallHeight,
             new TextureRegion(wall) // TODO improve
     );
     rightWall.rotateY(-90);
     rightWall.setPosition(
             logicToDisplay(new Logic.Pos(width, 0)).x,
-            wallHeight / 2f - 1f,
+            wallHeight/2f - 1f,
             center.z
     );
 
     final Decal backWall = Decal.newDecal(
-            (float) width * sizeOfBlock,
+            (float)width * sizeOfBlock,
             wallHeight,
             new TextureRegion(wall) // TODO improve
     );
     backWall.setPosition(
             center.x,
-            wallHeight / 2f - 1f,
+            wallHeight/2f - 1f,
             logicToDisplay(new Logic.Pos(0, 0)).z
     );
 
@@ -486,55 +513,27 @@ public class View {
   ) {
     final int off;
     switch (dir) {
-      case UP: {
-        off = 0;
-        break;
-      }
-      case RIGHT: {
-        off = 1;
-        break;
-      }
-      case DOWN: {
-        off = 2;
-        break;
-      }
-      case LEFT: {
-        off = 3;
-        break;
-      }
-      default: {
-        throw new IllegalStateException("Unknown dir" + dir);
-      }
-    }
+      case UP: off = 0; break;
+      case RIGHT: off = 1; break;
+      case DOWN: off = 2; break;
+      case LEFT: off = 3; break;
+      default: off = 0;
+    };
     final Decal dec = Decal.newDecal(
             sizeOfBlock, sizeOfBlock / 3,
             new TextureRegion(side[(ridx + off) % side.length])
     );
     final Vector3 posOff;
     switch (dir) {
-      case LEFT: {
-        posOff = new Vector3(-1, -1 / 3f, 0);
-        break;
-      }
-      case RIGHT: {
-        posOff = new Vector3(1, -1 / 3f, 0);
-        break;
-      }
-      case UP: {
-        posOff = new Vector3(0, -1 / 3f, -1);
-        break;
-      }
-      case DOWN: {
-        posOff = new Vector3(0, -1 / 3f, 1);
-        break;
-      }
-      default: {
-        throw new IllegalStateException("Unknown dir" + dir);
-      }
-    }
+      case LEFT: posOff = new Vector3(-1, -1 / 3f, 0); break;
+      case RIGHT: posOff = new Vector3(1, -1 / 3f, 0); break;
+      case UP: posOff = new Vector3(0, -1 / 3f, -1); break;
+      case DOWN: posOff = new Vector3(0, -1 / 3f, 1); break;
+      default: posOff = Vector3.Zero.cpy();
+    };
 
     dec.setColor(0.8f, 0.8f, 0.8f, 1.0f);
-    dec.rotateY((float) (90 * off));
+    dec.rotateY((float)(90 * off));
     dec.setPosition(basePos.cpy().add(posOff.scl(sizeOfBlock / 2)));
 
     decalBatch.add(dec);
@@ -577,23 +576,11 @@ public class View {
 
         final Texture tileTexture;
         switch (cell.type) {
-          case FLOOR:
-          case TREASURE: {
-            tileTexture = grass[((x << 16) ^ y) % grass.length];
-            break;
-          }
-          case WALL: {
-            tileTexture = null;
-            break;
-          }
-          case ENTRANCE: {
-            tileTexture = exit;
-            break;
-          }
-          default: {
-            throw new IllegalStateException("Unknown tile type!");
-          }
-        }
+          case FLOOR: case TREASURE: tileTexture = grass[((x << 16) ^ y) % grass.length]; break;
+          case WALL: tileTexture = null; break;
+          case ENTRANCE: tileTexture = exit; break;
+          default: tileTexture = null;
+        };
 
         if (tileTexture == null) {
           for (final Logic.MoveDirection dir : dirs) {
@@ -612,7 +599,7 @@ public class View {
         decalBatch.add(dec);
 
         /* exception for the chest */
-        if (!logic.isTreasureStolen() && cell.type == Logic.CellType.TREASURE) {
+        if (!logic.isTreasureStolen() && !logic.isScrollingShadow() && cell.type == Logic.CellType.TREASURE) {
           drawThing(
                   1.3f,
                   true,
@@ -628,8 +615,8 @@ public class View {
   private Vector3 cameraPos(final Logic logic) {
     final Vector3 camPos = fieldLookAtPoint(logic);
 
-    camPos.y = 1.5f + (1 - (float) logic.getFieldHeight() / 10f) * 1.2f;
-    camPos.z = 3.0f - (1 - (float) logic.getFieldHeight() / 10f) * 3.0f;
+    camPos.y = 1.5f + (1 - (float)logic.getFieldHeight()/10f) * 1.2f;
+    camPos.z = 3.0f - (1 - (float)logic.getFieldHeight()/10f) * 3.0f;
 
     return camPos;
   }
@@ -667,9 +654,9 @@ public class View {
           final Logic.Pos lPos
   ) {
     return new Vector3(
-            (float) lPos.x,
+            (float)lPos.x,
             0f,
-            (float) lPos.y
+            (float)lPos.y
     ).scl(sizeOfBlock).add(-1, 0, -1);
   }
 
