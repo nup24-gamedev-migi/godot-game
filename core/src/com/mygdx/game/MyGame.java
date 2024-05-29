@@ -24,8 +24,23 @@ public class MyGame extends ApplicationAdapter {
                     {"x", "x", "x", "x", "x"},
                     {"x", "o", "o", "o", "x"},
                     {"e", "o", "x", "o", "t"},
+                    {"x", "o", "b", "x", "x"},
+                    {"x", "x", "x", "x", "x"}
+            },
+            {
+                    {"x", "x", "x", "x", "x"},
+                    {"x", "o", "o", "o", "x"},
+                    {"e", "o", "x", "o", "t"},
                     {"x", "o", "o", "o", "x"},
                     {"x", "x", "x", "x", "x"}
+            },
+            {
+                    {"x", "x", "x", "x", "x"},
+                    {"x", "o", "o", "o", "x"},
+                    {"x", "o", "t", "o", "x"},
+                    {"e", "o", "o", "o", "x"},
+                    {"x", "x", "x", "x", "x"},
+
             },
             {
                     {"x", "x", "x", "x", "x", "x", "x"},
@@ -70,7 +85,6 @@ public class MyGame extends ApplicationAdapter {
                     {"o", "o", "o", "o", "o", "o", "t", "o", "o", "o"},
                     {"o", "o", "o", "o", "o", "o", "o", "o", "o", "o"},
             },
-
     };
 
     @Override
