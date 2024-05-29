@@ -9,8 +9,8 @@ buildscript {
         google()
     }
     dependencies {
-        
-
+        classpath 'org.docstr:gwt-gradle-plugin:1.1.29'
+        classpath 'org.gretty:gretty:3.1.0'
     }
 }
 
@@ -20,7 +20,8 @@ allprojects {
     version = '1.0'
     ext {
         appName = "test_gamedev_proj"
-        gdxVersion = '1.12.1'
+//        gdxVersion = '1.12.1'
+        gdxVersion = '1.12.2-SNAPSHOT'
         roboVMVersion = '2.3.20'
         box2DLightsVersion = '1.5'
         ashleyVersion = '1.7.4'
@@ -41,7 +42,7 @@ allprojects {
     apply plugin: "java-library"
 
     java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
+//        sourceCompatibility = JavaVersion.VERSION_1_8
         toolchain {
 
         }
@@ -55,6 +56,23 @@ project(":desktop") {
         api "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
         api "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
         
+    }
+}
+
+project(":html") {
+    apply plugin: "java-library"
+    apply plugin: "gwt"
+    apply plugin: "war"
+    apply plugin: "org.gretty"
+
+
+    dependencies {
+        implementation project(":core")
+        api "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion"
+        api "com.badlogicgames.gdx:gdx:$gdxVersion:sources"
+        api "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion:sources"
+        api "com.google.jsinterop:jsinterop-annotations:2.0.2:sources"
+
     }
 }
 
