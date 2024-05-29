@@ -446,7 +446,8 @@ public class View {
               sizeOfBlock, sizeOfBlock * 0.45f,
               new TextureRegion(traceTexture[((x << 16) ^ y) % traceTexture.length])
       );
-      dec.setColor(1, 1, 1, 0.6f);
+//      dec.setColor(1, 1, 1, 0.6f);
+      dec.setColor(1, 1, 1, 1);
       dec.setBlending(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
       dec.rotateX(-90);
       dec.setPosition(tracePos);
