@@ -98,19 +98,19 @@ public class MyGame extends ApplicationAdapter {
             @Override
             public boolean keyDown(int keycode) {
                 switch (keycode) {
-                    case Input.Keys.A: {
+                    case Input.Keys.A, Input.Keys.LEFT: {
                         logic.movePlayer(Logic.MoveDirection.LEFT);
                         break;
                     }
-                    case Input.Keys.D: {
-                        logic.movePlayer(Logic.MoveDirection.RIGHT);
-                        break;
-                    }
-                    case Input.Keys.W: {
+                    case Input.Keys.UP, Input.Keys.W: {
                         logic.movePlayer(Logic.MoveDirection.UP);
                         break;
                     }
-                    case Input.Keys.S: {
+                    case Input.Keys.D, Input.Keys.RIGHT: {
+                        logic.movePlayer(Logic.MoveDirection.RIGHT);
+                        break;
+                    }
+                    case Input.Keys.S, Input.Keys.DOWN: {
                         logic.movePlayer(Logic.MoveDirection.DOWN);
                         break;
                     }
