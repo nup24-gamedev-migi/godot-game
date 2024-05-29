@@ -120,7 +120,17 @@ public class View {
                     .stream()
                     .map(x -> buildShadow(x, shadow, shadowHand))
                     .collect(Collectors.toList());
+        } else if (model.isScrollingShadow()) {
+            shadowModels = buildShadowSegments(model)
+                    .stream()
+                    .map(x -> buildShadow(x, shadow, shadowHand))
+                    .collect(Collectors.toList());
+            shadowModels.stream()
+                    .map(ModelInstance::new)
+                    .forEach(modelBatch::render);
+            modelBatch.end();
         }
+
         if (!shadowModels.isEmpty() && model.isTreasureStolen()) {
             shadowModels.stream()
                     .map(ModelInstance::new)
@@ -129,7 +139,10 @@ public class View {
             shadowModels.forEach(Model::dispose);
             shadowModels.clear();
         }
-        modelBatch.end();
+
+        if (!model.isScrollingShadow()) {
+            modelBatch.end();
+        }
         
 	    model.allThings().forEach(entry -> {
             final Logic.ThingType ty = entry.getValue();
@@ -204,7 +217,9 @@ public class View {
         final List<Logic.Pair> history = logic.getHistory();
         for (int i = 0; i < history.size(); i++) {
             final Logic.Pos pos = history.get(i).pos;
-            if (logic.getCell(pos.x, pos.y).hasShadow) {
+            //            final boolean hasShadow = logic.getCell(pos.x, pos.y).hasShadow;
+            final boolean hasShadow = logic.getVst(pos.x, pos.y) == Logic.CellState.VISITED;
+            if (hasShadow) {
                 return i;
             }
         }
@@ -230,9 +245,11 @@ public class View {
 
         res.add(new ArrayList<>(Collections.singleton(prev[0])));
 
-        logic.getHistory().stream().skip(startIndex+1).forEach(pair -> {
+        logic.getHistory().stream().limit(logic.getShadowScroll()).skip(startIndex+1).forEach(pair -> {
             final Logic.Pos end = pair.pos;
-            if (!logic.getCell(end.x, end.y).hasShadow) {
+//            final boolean hasShadow = logic.getCell(end.x, end.y).hasShadow;
+            final boolean hasShadow = logic.getVst(end.x, end.y) == Logic.CellState.VISITED;
+            if (!hasShadow) {
                 return;
             }
 
@@ -394,7 +411,7 @@ public class View {
     }
 
     private void drawPlayerTrace(final Logic logic) {
-        if (logic.isTreasureStolen()) {
+        if (logic.isTreasureStolen() || logic.isScrollingShadow()) {
             return;
         }
         
@@ -568,7 +585,7 @@ public class View {
                 decalBatch.add(dec);
 
                 /* exception for the chest */
-                if (!logic.isTreasureStolen() && cell.type == Logic.CellType.TREASURE) {
+                if (!logic.isTreasureStolen() && !logic.isScrollingShadow() && cell.type == Logic.CellType.TREASURE) {
                     drawThing(
                             1.3f,
                             true,

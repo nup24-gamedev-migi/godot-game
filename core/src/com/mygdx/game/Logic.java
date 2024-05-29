@@ -18,6 +18,12 @@ public class Logic {
     }
   }
 
+  public enum GameState {
+    NORMAL,
+    SCROLL_SHADOW,
+    GAME_OVER,
+  }
+
   public enum CellState {
     VISITED,
     UNVISITED,
@@ -130,13 +136,16 @@ public class Logic {
   private final int fieldHeight;
   private final List<Pair> history;
   private boolean isTreasureStolen; // update this when loading new level
-  private boolean isGameOver;
+  private GameState gameState;
 
-  private static boolean doBoxDrop = true;
+  private final CellState[][] visited;
+  private int shadowScroll;
+  private int tickIdx;
 
   public boolean isGameOver() {
-    return isGameOver;
+    return gameState == GameState.GAME_OVER;
   }
+  private static boolean doBoxDrop = true;
   public int getFieldWidth() {
     return fieldWidth;
   }
@@ -162,10 +171,15 @@ public class Logic {
   }
 
   public Logic(final CellType[][] field, final Map<Pos, ThingType> thingTypeMap) {
+    shadowScroll = 0;
     history = new ArrayList<>();
     playerPos = findPlayerPos(field);
     fieldHeight = field.length;
     fieldWidth = field[0].length;
+    visited = new CellState[fieldHeight][fieldWidth];
+    for (CellState[] row : visited) {
+      Arrays.fill(row, CellState.UNVISITED);
+    }
 
     this.thingTypeMap = new HashMap<>(thingTypeMap
             .entrySet().stream()
@@ -181,6 +195,10 @@ public class Logic {
       }
     }
     isTreasureStolen = false;
+  }
+
+  public CellState getVst(final int x, final int y) {
+    return visited[y][x];
   }
 
   private Pos findPlayerPos(CellType[][] field) {
@@ -209,7 +227,7 @@ public class Logic {
 
 
   public void movePlayer(final MoveDirection dir) {
-      if (isGameOver) {
+      if (isGameOver() || gameState == GameState.SCROLL_SHADOW) {
           return;
       }
 
@@ -217,21 +235,73 @@ public class Logic {
           playerPos = playerPos.applyDir(dir);
           history.add(new Pair(playerPos, dir));
           if (getCell(playerPos.x, playerPos.y).hasShadow) {
-              isGameOver = true;
+              gameState = GameState.GAME_OVER;
           }
           if (getCell(playerPos.x, playerPos.y).type == CellType.TREASURE && ! isTreasureStolen) {
-              applyShadowToField();
+              gameState = GameState.SCROLL_SHADOW;
+//              applyShadowToField();
           }
       }
   }
 
-  // TODO should be private and called when treasure was stolen.
-  public void applyShadowToField() {
-    CellState[][] visited = new CellState[fieldHeight][fieldWidth];
-    for (CellState[] row : visited) {
-      Arrays.fill(row, CellState.UNVISITED);
+  public boolean isScrollingShadow() {
+    return gameState == GameState.SCROLL_SHADOW;
+  }
+
+  public int getShadowScroll() {
+    return shadowScroll;
+  }
+
+  public void tick() {
+    if (gameState != GameState.SCROLL_SHADOW) {
+      return;
     }
 
+    tickIdx++;
+    if ((tickIdx % 10) != 0) {
+      return;
+    }
+
+    int i = shadowScroll;
+    Pos currentCellPos = history.get(i).pos;
+    if (visited[currentCellPos.y][currentCellPos.x] == CellState.UNVISITED) {
+      visited[currentCellPos.y][currentCellPos.x] = CellState.VISITED;
+    } else if (visited[currentCellPos.y][currentCellPos.x] == CellState.VISITED) {
+      int j = i - 1;
+      Pos curPosToFindCycle = history.get(j).pos;
+
+      for (; !curPosToFindCycle.equals(currentCellPos); j--) {
+        curPosToFindCycle = history.get(j).pos;
+        visited[curPosToFindCycle.y][curPosToFindCycle.x] = CellState.CYCLE;
+      }
+      if (!validateSimpleCycle(visited, currentCellPos, ++j, i)) {
+        int h = i - 1;
+        Pos curPos;
+        for (; h >= j; h--) {
+          curPos = history.get(h).pos;
+          if (visited[curPos.y][curPos.x] == CellState.CYCLE)
+            visited[curPos.y][curPos.x] = CellState.VISITED;
+        }
+      }
+    }
+
+    shadowScroll++;
+    if (shadowScroll < history.size() - 1) {
+      return;
+    }
+
+    for (Pair record : history) {
+      Pos curPos = record.pos;
+      if (visited[curPos.y][curPos.x] == CellState.VISITED) {
+        getCell(curPos.x, curPos.y).hasShadow = true;
+      }
+    }
+    isTreasureStolen = true;
+    gameState = GameState.NORMAL;
+  }
+
+  // TODO should be private and called when treasure was stolen.
+  public void applyShadowToField() {
     for (int i = 0; i < history.size() - 1; i++) {
       Pos currentCellPos = history.get(i).pos;
       if (visited[currentCellPos.y][currentCellPos.x] == CellState.UNVISITED) {
