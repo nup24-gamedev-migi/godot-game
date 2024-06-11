@@ -130,11 +130,13 @@ public class Logic {
   private final int fieldHeight;
   private final List<Pair> history;
   private boolean isTreasureStolen; // update this when loading new level
-  private static boolean isGameOver;
+  private boolean isGameOver;
 
   private static boolean doBoxDrop = true;
 
-
+  public boolean isGameOver() {
+    return isGameOver;
+  }
   public int getFieldWidth() {
     return fieldWidth;
   }

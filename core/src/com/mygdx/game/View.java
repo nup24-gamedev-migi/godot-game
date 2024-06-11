@@ -36,6 +36,7 @@ public class View {
     private final Texture shadow;
     private final Texture shadowHand;
     private final Texture chest;
+    private final Texture gameOver;
 
     /* Resources for the don't starve look */
     private final ModelBatch modelBatch;
@@ -73,6 +74,7 @@ public class View {
         traceTexture = IntStream.range(1, 4)
                 .mapToObj(x -> new Texture("trace" + x + ".png"))
                 .toArray(Texture[]::new);
+        gameOver = new Texture("gameover.png");
 
         modelBatch = new ModelBatch();
         cam = new PerspectiveCamera(30, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -89,6 +91,22 @@ public class View {
 
         Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+
+        if (model.isGameOver()) {
+            cam.position.set(0,0,1f);
+            cam.lookAt(0, 0, 0);
+            cam.update();
+
+            final Decal dec = Decal.newDecal(
+                    1.5f, 1,
+                    new TextureRegion(gameOver)
+            );
+            dec.setPosition(0,0,-2);
+            decalBatch.add(dec);
+            decalBatch.flush();
+
+            return;
+        }
 
         drawField(model);
         drawWalls(model);
