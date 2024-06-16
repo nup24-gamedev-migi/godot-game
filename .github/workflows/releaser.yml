@@ -25,7 +25,7 @@ jobs:
   jar-stuff:
     name: Jar the gold
     needs: tag-gold
-    container: cimg/openjdk:8.0
+    container: cimg/openjdk:20.0
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
