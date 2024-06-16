@@ -128,7 +128,7 @@ public class TreasureGrabTests {
         final Logic.CellType[][] field = genEmptyField(fieldWidth, fieldHeight);
         field[playerPos.y][playerPos.x] = Logic.CellType.ENTRANCE;
         field[treasurePos.y][treasurePos.x] = Logic.CellType.TREASURE;
-        final Logic logic = new Logic(field, Map.of());
+        final Logic logic = new Logic(field, new HashMap<>());
 
         makeAssertion(logic, fieldWidth, fieldHeight);
 
@@ -157,32 +157,14 @@ public class TreasureGrabTests {
                 new Logic.Pos(1, 1),
                 new Logic.Pos(3, 3),
                 "RRDD",
-                """
-                        oooooooo
-                        ooxxoooo
-                        oooxoooo
-                        ooo$oooo
-                        oooooooo
-                        oooooooo
-                        oooooooo
-                        oooooooo
-                        """
+                "oooooooo\nooxxoooo\noooxoooo\nooo$oooo\noooooooo\noooooooo\noooooooo\noooooooo\n"
         );
         boolean[][] shadow = shadowCoverage(logic, 8, 8);
 
         tryMoves(
                 logic,
                 "DDUU",
-                """
-                        oooooooo
-                        ooxxoooo
-                        oooxoooo
-                        ooo$oooo
-                        oooooooo
-                        oooooooo
-                        oooooooo
-                        oooooooo
-                        """
+                "oooooooo\nooxxoooo\noooxoooo\nooo$oooo\noooooooo\noooooooo\noooooooo\noooooooo\n"
         );
         boolean[][] newShadow = shadowCoverage(logic, 8, 8);
 
