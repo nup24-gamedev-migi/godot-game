@@ -36,6 +36,7 @@ public class View {
     private final Texture shadow;
     private final Texture shadowHand;
     private final Texture chest;
+    private final Texture gameOver;
 
     /* Resources for the don't starve look */
     private final ModelBatch modelBatch;
@@ -73,6 +74,7 @@ public class View {
         traceTexture = IntStream.range(1, 4)
                 .mapToObj(x -> new Texture("trace" + x + ".png"))
                 .toArray(Texture[]::new);
+        gameOver = new Texture("gameover.png");
 
         modelBatch = new ModelBatch();
         cam = new PerspectiveCamera(30, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -89,6 +91,22 @@ public class View {
 
         Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+
+        if (model.isGameOver()) {
+            cam.position.set(0,0,1f);
+            cam.lookAt(0, 0, 0);
+            cam.update();
+
+            final Decal dec = Decal.newDecal(
+                    1.5f, 1,
+                    new TextureRegion(gameOver)
+            );
+            dec.setPosition(0,0,-2);
+            decalBatch.add(dec);
+            decalBatch.flush();
+
+            return;
+        }
 
         drawField(model);
         drawWalls(model);
@@ -115,22 +133,30 @@ public class View {
         
 	    model.allThings().forEach(entry -> {
             final Logic.ThingType ty = entry.getValue();
-            final Texture img = switch (ty) {
-                case PLAYER -> playerImg;
-                case BOX -> boxImg;
-            };
-            final float shiftAlongFloor = switch (ty) {
-                case PLAYER -> 0f;
-                case BOX -> sizeOfBlock / 2;
-            };
-            final float scale = switch (ty) {
-                case PLAYER -> 2f;
-                case BOX -> 1f;
-            };
-            final boolean billboard = switch (ty) {
-                case PLAYER -> false;
-                case BOX -> true;
-            };
+          final Texture img;
+          switch (ty) {
+            case PLAYER: img = playerImg; break;
+            case BOX: img = boxImg; break;
+            default: img = null;
+          };
+          final float shiftAlongFloor;
+          switch (ty) {
+            case PLAYER: shiftAlongFloor = 0f; break;
+            case BOX: shiftAlongFloor = sizeOfBlock / 2; break;
+            default: shiftAlongFloor = 0;
+          };
+          final float scale;
+          switch (ty) {
+            case PLAYER: scale = 2f; break;
+            case BOX: scale = 1f; break;
+            default: scale = 0f;
+          };
+          final boolean billboard;
+          switch (ty) {
+            case PLAYER: billboard = false; break;
+            case BOX: billboard = true; break;
+            default: billboard = false;
+          };
 
             drawThing(
                     scale,
@@ -409,9 +435,9 @@ public class View {
             dec.setPosition(tracePos);
 
             switch (pair.dir) {
-                case DOWN -> dec.rotateZ(-90);
-                case LEFT -> dec.rotateZ(180);
-                case UP -> dec.rotateZ(90);
+              case DOWN: dec.rotateZ(-90); break;
+              case LEFT: dec.rotateZ(180); break;
+              case UP: dec.rotateZ(90); break;
             }
 
             decalBatch.add(dec);
@@ -468,21 +494,25 @@ public class View {
             final Logic.MoveDirection dir,
             final Vector3 basePos
     ) {
-        final int off = switch (dir) {
-            case UP -> 0;
-            case RIGHT -> 1;
-            case DOWN -> 2;
-            case LEFT -> 3;
+        final int off;
+        switch (dir) {
+            case UP: off = 0; break;
+            case RIGHT: off = 1; break;
+            case DOWN: off = 2; break;
+            case LEFT: off = 3; break;
+            default: off = 0;
         };
         final Decal dec = Decal.newDecal(
                 sizeOfBlock, sizeOfBlock / 3,
                 new TextureRegion(side[(ridx + off) % side.length])
         );
-        final Vector3 posOff = switch (dir) {
-            case LEFT -> new Vector3(-1, -1 / 3f, 0);
-            case RIGHT -> new Vector3(1, -1 / 3f, 0);
-            case UP -> new Vector3(0, -1 / 3f, -1);
-            case DOWN -> new Vector3(0, -1 / 3f, 1);
+        final Vector3 posOff;
+        switch (dir) {
+          case LEFT: posOff = new Vector3(-1, -1 / 3f, 0); break;
+          case RIGHT: posOff = new Vector3(1, -1 / 3f, 0); break;
+          case UP: posOff = new Vector3(0, -1 / 3f, -1); break;
+          case DOWN: posOff = new Vector3(0, -1 / 3f, 1); break;
+          default: posOff = Vector3.Zero.cpy();
         };
 
         dec.setColor(0.8f, 0.8f, 0.8f, 1.0f);
@@ -527,10 +557,12 @@ public class View {
                 final int ridx = (x << 16) ^ y;
                 final Logic.Pos cellLogPos = new Logic.Pos(x, y);
 
-                final Texture tileTexture = switch (cell.type) {
-                    case FLOOR, TREASURE -> grass[((x << 16) ^ y) % grass.length];
-                    case WALL -> null;
-                    case ENTRANCE -> exit;
+                final Texture tileTexture;
+                switch (cell.type) {
+                    case FLOOR: case TREASURE: tileTexture = grass[((x << 16) ^ y) % grass.length]; break;
+                    case WALL: tileTexture = null; break;
+                    case ENTRANCE: tileTexture = exit; break;
+                    default: tileTexture = null;
                 };
 
                 if (tileTexture == null) {

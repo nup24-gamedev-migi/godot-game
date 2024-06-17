@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class PosDirectionTests {
     @Test
@@ -34,7 +35,7 @@ public class PosDirectionTests {
         final Logic.Pos expectPos = new Logic.Pos(0, 0);
         Random rnd = new Random();
 
-        for (int i = 0; i < rnd.nextInt(1000, 10000); i++) {
+        for (int i = 0; i < ThreadLocalRandom.current().nextInt(1000, 10000); i++) {
             pos = pos.applyDir(Logic.MoveDirection.RIGHT);
             pos = pos.applyDir(Logic.MoveDirection.DOWN);
             pos = pos.applyDir(Logic.MoveDirection.LEFT);
