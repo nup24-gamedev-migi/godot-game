@@ -49,3 +49,25 @@ impl Logic {
         todo!()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Direction;
+
+    #[test]
+    fn dir_inv() {
+        for x in 0..1000  {
+            for y in 0..1000  {
+                let (lx, ly) = Direction::Left.apply(x, y);
+                let (ux, uy) = Direction::Up.apply(x, y);
+                let (rx, ry) = Direction::Right.apply(x, y);
+                let (dx, dy) = Direction::Down.apply(x, y);
+
+                assert_eq!((x, y), Direction::Right.apply(lx, ly));
+                assert_eq!((x, y), Direction::Down.apply(ux, uy));
+                assert_eq!((x, y), Direction::Left.apply(rx, ry));
+                assert_eq!((x, y), Direction::Up.apply(dx, dy));
+            }
+        }
+    }
+}
