@@ -1,3 +1,8 @@
+//! This module does a stupid simple thing:
+//! * Spawns the requested tiles
+//! * Gives a simple mapping from positions to tiles
+//! * For convinience, tags every tile with `TileTag`
+
 use crate::utils::ent_from_id;
 use super::{Entity, World, LOGIC_CFG_ENTITY};
 
@@ -77,7 +82,7 @@ mod tests {
 
     use crate::logic::{tile::{get_tile_at, pos_to_tile_id}, LOGIC_CFG_ENTITY};
 
-    use super::{despawn_tiles, spawn_tiles, tile_ent_iter, TileConfig};
+    use super::{despawn_tiles, spawn_tiles, tile_ent_iter, TileConfig, TileTag};
 
     const SIZES : [(u32, u32); 8] = [
         (10, 10),
@@ -128,6 +133,25 @@ mod tests {
                     let e = get_tile_at(&mut world, x, y).expect("Tile must exist");
                     assert_eq!(e, pos_to_tile_id(cfg, x, y));
                 }
+            }
+
+            despawn_tiles(&mut world).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_spawn_depsawn_tag() {
+        let mut world = World::new();
+
+        for (width, height) in SIZES {
+            let cfg = TileConfig { width, height };
+            world.spawn_at(LOGIC_CFG_ENTITY, (cfg,));
+
+            spawn_tiles(&mut world).unwrap();
+
+            for e in tile_ent_iter(cfg) {
+                world.query_one_mut::<&TileTag>(e)
+                    .expect("Tiles must be tagged");
             }
 
             despawn_tiles(&mut world).unwrap();
