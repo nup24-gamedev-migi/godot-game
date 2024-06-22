@@ -2,8 +2,8 @@ use hecs::{Entity, World};
 use tile::TileConfig;
 use crate::utils::*;
 
-mod tile;
-mod tile_walker;
+pub mod tile;
+pub mod tile_walker;
 
 pub const LOGIC_CFG_ENTITY : Entity = ent_from_id(0);
 
