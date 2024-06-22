@@ -4,7 +4,7 @@
 //! * For convinience, tags every tile with `TileTag`
 
 use crate::utils::ent_from_id;
-use super::{Entity, World, LOGIC_CFG_ENTITY};
+use super::{Entity, World, Direction, LOGIC_CFG_ENTITY};
 
 use anyhow::Context;
 use macroquad::logging::debug;
@@ -16,6 +16,12 @@ pub struct TileTag;
 pub struct TileConfig {
     pub width: u32,
     pub height: u32,
+}
+
+fn tile_id_to_pos(cfg: TileConfig, e: Entity) -> (u32, u32) {
+    let id = e.id() - 1;
+
+    (id % cfg.width, id / cfg.width)
 }
 
 fn pos_to_tile_id(cfg: TileConfig, x: u32, y: u32) -> Entity {
@@ -74,13 +80,34 @@ pub fn get_tile_at(game_world: &mut World, x: u32, y: u32) -> Option<Entity> {
     Some(ent)
 }
 
+fn tile_neigbhors(game_world: &mut World, tile: Entity) -> [Option<Entity>; 4] {
+    let cfg = get_tile_config(game_world).expect("Tile config must be present");
+
+    let (x, y) = tile_id_to_pos(cfg, tile);
+
+    [
+        Direction::Left.apply(x, y),
+        Direction::Up.apply(x, y),
+        Direction::Right.apply(x, y),
+        Direction::Down.apply(x, y),
+    ].map(|(x, y)| get_tile_at(game_world, x, y))
+}
+
+pub fn get_tile_neighbor(game_world: &mut World, tile: Entity, dir: Direction) -> Option<Entity> {
+    tile_neigbhors(game_world, tile)[dir as usize]
+}
+
+pub fn get_tile_neighbors(game_world: &mut World, tile: Entity) -> impl Iterator<Item = Entity> {
+    tile_neigbhors(game_world, tile).into_iter().filter_map(|x| x)
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
 
     use hecs::World;
 
-    use crate::logic::{tile::{get_tile_at, pos_to_tile_id}, LOGIC_CFG_ENTITY};
+    use crate::logic::{tile::{get_tile_at, pos_to_tile_id, tile_id_to_pos}, LOGIC_CFG_ENTITY};
 
     use super::{despawn_tiles, spawn_tiles, tile_ent_iter, TileConfig, TileTag};
 
@@ -107,14 +134,47 @@ mod tests {
     }
 
     #[test]
+    fn tile_id_to_pos_same() {
+        for (width, height) in SIZES {
+            let cfg = TileConfig { width, height };
+
+            for x in 0..width{
+                for y in 0..height {
+                    assert_eq!((x, y), tile_id_to_pos(cfg, pos_to_tile_id(cfg, x, y)))
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn tile_pos_to_id_same() {
+        for (width, height) in SIZES {
+            let cfg = TileConfig { width, height };
+
+            for e in tile_ent_iter(cfg) {
+                let (x, y) = tile_id_to_pos(cfg, e);
+                assert_eq!(e, pos_to_tile_id(cfg, x, y));
+            }
+        }
+    }
+
+    #[test]
     fn test_spawn_depsawn() {
         let mut world = World::new();
 
         for (width, height) in SIZES {
-            world.spawn_at(LOGIC_CFG_ENTITY, (TileConfig { width, height },));
+            let cfg = TileConfig { width, height };
+            world.spawn_at(LOGIC_CFG_ENTITY, (cfg,));
 
             spawn_tiles(&mut world).unwrap();
+            for e in tile_ent_iter(cfg) {
+                assert!(world.contains(e));
+            }
+
             despawn_tiles(&mut world).unwrap();
+            for e in tile_ent_iter(cfg) {
+                assert!(!world.contains(e));
+            }
         }
     }
 

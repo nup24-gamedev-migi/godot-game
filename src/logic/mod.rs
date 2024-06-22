@@ -3,6 +3,7 @@ use tile::TileConfig;
 use crate::utils::*;
 
 mod tile;
+mod tile_walker;
 
 pub const LOGIC_CFG_ENTITY : Entity = ent_from_id(0);
 
@@ -12,6 +13,17 @@ pub enum Direction {
     Up = 1,
     Right = 2,
     Down = 3,
+}
+
+impl Direction {
+    pub fn apply(&self, x: u32, y: u32) -> (u32, u32) {
+        match self {
+            Direction::Left => (x.wrapping_sub(1), y),
+            Direction::Up => (x, y.wrapping_sub(1)),
+            Direction::Right => (x.wrapping_add(1), y),
+            Direction::Down => (x, y.wrapping_add(1)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
