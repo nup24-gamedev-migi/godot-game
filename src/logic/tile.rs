@@ -107,7 +107,7 @@ mod tests {
 
     use hecs::World;
 
-    use crate::logic::{tile::{get_tile_at, pos_to_tile_id, tile_id_to_pos}, LOGIC_CFG_ENTITY};
+    use crate::logic::{tile::{get_tile_at, get_tile_neighbor, pos_to_tile_id, tile_id_to_pos}, Direction, LOGIC_CFG_ENTITY};
 
     use super::{despawn_tiles, spawn_tiles, tile_ent_iter, TileConfig, TileTag};
 
@@ -212,6 +212,58 @@ mod tests {
             for e in tile_ent_iter(cfg) {
                 world.query_one_mut::<&TileTag>(e)
                     .expect("Tiles must be tagged");
+            }
+
+            despawn_tiles(&mut world).unwrap();
+        }
+    }
+
+    #[test]
+    fn tile_direction() {
+        let mut world = World::new();
+
+        for (width, height) in SIZES {
+            let cfg = TileConfig { width, height };
+            world.spawn_at(LOGIC_CFG_ENTITY, (cfg,));
+
+            spawn_tiles(&mut world).unwrap();
+
+            for e in tile_ent_iter(cfg) {
+                let le = get_tile_neighbor(&mut world, e, Direction::Left);
+                if let Some(le) = le {
+                    assert_eq!(e, get_tile_neighbor(
+                        &mut world,
+                        le,
+                        Direction::Right
+                    ).expect("Right neighbor must exist"));
+                }
+
+                let ue = get_tile_neighbor(&mut world, e, Direction::Up);
+                if let Some(ue) = ue {
+                    assert_eq!(e, get_tile_neighbor(
+                        &mut world,
+                        ue,
+                        Direction::Down
+                    ).expect("Down neighbor must exist"));
+                }
+
+                let re = get_tile_neighbor(&mut world, e, Direction::Right);
+                if let Some(re) = re {
+                    assert_eq!(e, get_tile_neighbor(
+                        &mut world,
+                        re,
+                        Direction::Left
+                    ).expect("Left neighbor must exist"));
+                }
+
+                let de = get_tile_neighbor(&mut world, e, Direction::Down);
+                if let Some(de) = de {
+                    assert_eq!(e, get_tile_neighbor(
+                        &mut world,
+                        de,
+                        Direction::Up
+                    ).expect("Left neighbor must exist"));
+                }
             }
 
             despawn_tiles(&mut world).unwrap();
