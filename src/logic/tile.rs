@@ -101,13 +101,19 @@ pub fn get_tile_neighbors(game_world: &World, tile: Entity) -> impl Iterator<Ite
     tile_neigbhors(game_world, tile).into_iter().filter_map(|x| x)
 }
 
+pub fn get_tile_pos(game_world: &World, tile: Entity) -> (u32, u32) {
+    let cfg = get_tile_config(game_world).expect("Tile config must be present");
+
+    tile_id_to_pos(cfg, tile)
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
 
     use hecs::World;
 
-    use crate::logic::{tile::{get_tile_at, get_tile_neighbor, pos_to_tile_id, tile_id_to_pos}, Direction, LOGIC_CFG_ENTITY};
+    use crate::logic::{tile::{get_tile_at, get_tile_neighbor, get_tile_pos, pos_to_tile_id, tile_id_to_pos}, Direction, LOGIC_CFG_ENTITY};
 
     use super::{despawn_tiles, spawn_tiles, tile_ent_iter, TileConfig, TileTag};
 
@@ -212,6 +218,24 @@ mod tests {
             for e in tile_ent_iter(cfg) {
                 world.query_one_mut::<&TileTag>(e)
                     .expect("Tiles must be tagged");
+            }
+
+            despawn_tiles(&mut world).unwrap();
+        }
+    }
+
+    #[test]
+    fn get_tile_pos_val() {
+        let mut world = World::new();
+
+        for (width, height) in SIZES {
+            let cfg = TileConfig { width, height };
+            world.spawn_at(LOGIC_CFG_ENTITY, (cfg,));
+
+            spawn_tiles(&mut world).unwrap();
+
+            for e in tile_ent_iter(cfg) {
+                assert_eq!(tile_id_to_pos(cfg, e), get_tile_pos(&world, e));
             }
 
             despawn_tiles(&mut world).unwrap();
