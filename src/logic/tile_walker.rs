@@ -40,6 +40,13 @@ pub fn update_walkers(world: &World) {
     }
 }
 
+pub fn any_walkers_at(world: &World, tile: Entity) -> bool {
+    world.query::<(&TileWalkerPos,)>().into_iter()
+        .filter(|(_, (pos,))| pos.0 == tile)
+        .next()
+        .is_some()
+}
+
 #[cfg(test)]
 mod tests {
     use rand::{seq::SliceRandom, Rng};

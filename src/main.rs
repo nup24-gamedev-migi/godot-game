@@ -8,19 +8,23 @@ mod utils;
 #[macroquad::main("BasicShapes")]
 async fn main() {
     let mut logic = Logic::new();
-    logic.load_level();
-
-    let mut data0 = String::new();
-    let mut data1 = String::new();
-
-    let mut text0 = String::new();
-    let mut text1 = String::new();
-
-    let mut number0 = 0.;
-    let mut number1 = 0.;
+    if let Err(e) = logic.load_level() {
+        error!("Err: {}", e);
+        return;
+    }
 
     loop {
         if is_key_down(KeyCode::A) {
+            logic.move_player(logic::Direction::Left);
+        }
+        if is_key_down(KeyCode::W) {
+            logic.move_player(logic::Direction::Up);
+        }
+        if is_key_down(KeyCode::D) {
+            logic.move_player(logic::Direction::Right);
+        }
+        if is_key_down(KeyCode::S) {
+            logic.move_player(logic::Direction::Down);
         }
 
         logic.update();
