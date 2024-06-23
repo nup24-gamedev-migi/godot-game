@@ -34,7 +34,9 @@ impl GameView {
     pub fn draw_logic(&self, logic: &Logic) {
         match self.mode {
             ViewMode::Raw => raw_view::draw_logic(logic),
-            ViewMode::SimpleGeometry => (),
+            ViewMode::SimpleGeometry => {
+                clear_background(BLACK);
+            },
         }
     }
 
