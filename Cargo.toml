@@ -7,3 +7,6 @@ edition = "2021"
 anyhow = "1"
 macroquad = "0.4"
 hecs = "0.10"
+
+[dev-dependencies]
+rand = "0.8"
