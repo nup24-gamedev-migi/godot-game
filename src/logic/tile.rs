@@ -28,8 +28,8 @@ fn pos_to_tile_id(cfg: TileConfig, x: u32, y: u32) -> Entity {
     ent_from_id(y*cfg.width + x + 1)
 }
 
-fn get_tile_config(game_world: &mut World) -> anyhow::Result<TileConfig> {
-    Ok(*game_world.query_one_mut::<&TileConfig>(LOGIC_CFG_ENTITY)?)
+fn get_tile_config(game_world: &World) -> anyhow::Result<TileConfig> {
+    Ok(*game_world.query_one::<&TileConfig>(LOGIC_CFG_ENTITY)?.get().unwrap())
 }
 
 fn tile_ent_iter(cfg: TileConfig) -> impl Iterator<Item = Entity> {
@@ -63,7 +63,7 @@ pub fn despawn_tiles(game_world: &mut World) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn get_tile_at(game_world: &mut World, x: u32, y: u32) -> Option<Entity> {
+pub fn get_tile_at(game_world: &World, x: u32, y: u32) -> Option<Entity> {
     let cfg = get_tile_config(game_world).expect("Tile config must be present");
 
     if x >= cfg.width {
@@ -80,7 +80,7 @@ pub fn get_tile_at(game_world: &mut World, x: u32, y: u32) -> Option<Entity> {
     Some(ent)
 }
 
-fn tile_neigbhors(game_world: &mut World, tile: Entity) -> [Option<Entity>; 4] {
+fn tile_neigbhors(game_world: &World, tile: Entity) -> [Option<Entity>; 4] {
     let cfg = get_tile_config(game_world).expect("Tile config must be present");
 
     let (x, y) = tile_id_to_pos(cfg, tile);
@@ -93,11 +93,11 @@ fn tile_neigbhors(game_world: &mut World, tile: Entity) -> [Option<Entity>; 4] {
     ].map(|(x, y)| get_tile_at(game_world, x, y))
 }
 
-pub fn get_tile_neighbor(game_world: &mut World, tile: Entity, dir: Direction) -> Option<Entity> {
+pub fn get_tile_neighbor(game_world: &World, tile: Entity, dir: Direction) -> Option<Entity> {
     tile_neigbhors(game_world, tile)[dir as usize]
 }
 
-pub fn get_tile_neighbors(game_world: &mut World, tile: Entity) -> impl Iterator<Item = Entity> {
+pub fn get_tile_neighbors(game_world: &World, tile: Entity) -> impl Iterator<Item = Entity> {
     tile_neigbhors(game_world, tile).into_iter().filter_map(|x| x)
 }
 
