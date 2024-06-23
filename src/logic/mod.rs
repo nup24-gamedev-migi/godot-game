@@ -1,3 +1,5 @@
+use macroquad::prelude::*;
+use macroquad::ui::{hash, root_ui, widgets};
 use hecs::{Entity, World};
 use tile::TileConfig;
 use crate::utils::*;
@@ -45,8 +47,69 @@ impl Logic {
         }
     }
 
+    pub fn load_level(&mut self) {
+        self.world.insert_one(
+            LOGIC_CFG_ENTITY,
+            TileConfig { width: 10, height: 10 },
+        ).unwrap();
+
+        tile::spawn_tiles(&mut self.world).unwrap();
+
+        // Player
+        self.world.spawn((
+            tile_walker::TileWalkerMovement(None),
+            tile_walker::TileWalkerPos(
+                tile::get_tile_at(&self.world, 0, 0)
+                .unwrap()
+            ),
+            PlayerTag,
+        ));
+    }
+
+    pub fn update(&mut self) {
+        tile_walker::update_walkers(&self.world);
+    }
+
     pub fn move_player(&mut self, dir: Direction) {
         todo!()
+    }
+
+    pub fn debug_ui(&mut self) {
+        widgets::Window::new(hash!(), vec2(470., 50.), vec2(300., 300.))
+        .label("Logic debug")
+        .ui(&mut *root_ui(), |ui| {
+            ui.tree_node(hash!(), "general info", |ui| {
+                ui.label(None, &format!("Total number of entities: {}", self.world.len()));
+            });
+            ui.tree_node(hash!(), "tile walkers", |ui| {
+                use tile::*;
+                use tile_walker::*;
+
+                let mut query = self.world.query::<(&TileWalkerPos, &mut TileWalkerMovement)>();
+                for (e, (pos, dir)) in query.iter() {
+                    let (x, y) = get_tile_pos(&self.world, pos.0);
+
+                    ui.label(None, &format!("ent: {:?} at {}, {}", e, x, y));
+                    ui.same_line(0.);
+                    if ui.button(None, "L") {
+                        dir.0 = Some(Direction::Left);
+                    }
+                    ui.same_line(0.);
+                    if ui.button(None, "U") {
+                        dir.0 = Some(Direction::Up);
+                    }
+                    ui.same_line(0.);
+                    if ui.button(None, "R") {
+                        dir.0 = Some(Direction::Right);
+                    }
+                    ui.same_line(0.);
+                    if ui.button(None, "D") {
+                        dir.0 = Some(Direction::Down);
+                    }
+                    ui.separator();
+                }
+            });
+        });
     }
 }
 
