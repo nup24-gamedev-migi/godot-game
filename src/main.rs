@@ -2,12 +2,15 @@ use std::time::Instant;
 
 use logic::Logic;
 use macroquad::prelude::*;
+use view::GameView;
 
+mod view;
 mod logic;
 mod utils;
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
+    let mut view = GameView::new();
     let mut logic = Logic::new();
     if let Err(e) = logic.load_level() {
         error!("Err: {}", e);
@@ -33,6 +36,7 @@ async fn main() {
         }
 
         logic.update(dt);
+        view.draw_logic(&logic);
 
         clear_background(RED);
 
@@ -42,6 +46,7 @@ async fn main() {
         // draw_text(&format!("HELLO {} & {}", &*n, flag), 20.0, 20.0, 20.0, DARKGRAY);
 
         logic.debug_ui();
+        view.debug_ui();
 
         last_frame = curr_frame;
         next_frame().await
