@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use logic::Logic;
 use macroquad::prelude::*;
 use macroquad::ui::{widgets, hash, root_ui};
@@ -13,7 +15,10 @@ async fn main() {
         return;
     }
 
+    let mut last_frame = Instant::now();
     loop {
+        let curr_frame = Instant::now();
+
         if is_key_down(KeyCode::A) {
             logic.move_player(logic::Direction::Left);
         }
@@ -27,7 +32,7 @@ async fn main() {
             logic.move_player(logic::Direction::Down);
         }
 
-        logic.update();
+        logic.update(curr_frame.duration_since(last_frame));
 
         clear_background(RED);
 
@@ -38,6 +43,7 @@ async fn main() {
 
         logic.debug_ui();
 
+        last_frame = curr_frame;
         next_frame().await
     }
 }

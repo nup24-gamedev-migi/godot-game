@@ -1,4 +1,5 @@
 use std::borrow::{Borrow, BorrowMut};
+use std::time::Duration;
 
 use anyhow::Context;
 use macroquad::prelude::*;
@@ -50,7 +51,16 @@ pub enum TileKind {
     FallenBox,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum GameState {
+    Ready,
+    MovingPlayer(Duration),
+}
+
+const PLAYER_MOVE_TIME: Duration = Duration::from_millis(500);
+
 pub struct Logic {
+    state: GameState,
     world: World,
 }
 
@@ -62,6 +72,7 @@ impl Logic {
         world.spawn_at(LOGIC_CFG_ENTITY, ());
 
         Logic {
+            state: GameState::Ready,
             world,
         }
     }
@@ -100,11 +111,26 @@ impl Logic {
         tile::despawn_tiles(&mut self.world).unwrap();
     }
 
-    pub fn update(&mut self) {
-        tile_walker::update_walkers(&self.world);
+    pub fn update(&mut self, dt: Duration) {
+        match &mut self.state {
+            GameState::Ready => {
+                tile_walker::update_walkers(&self.world);
+            },
+            GameState::MovingPlayer(timer) => {
+                *timer = timer.saturating_sub(dt);
+
+                if timer.is_zero() {
+                    self.state = GameState::Ready;
+                }
+            }
+        }
     }
 
     pub fn move_player(&mut self, new_dir: Direction) {
+        if !matches!(self.state, GameState::Ready) {
+            return;
+        }
+
         let Some((_, (dir,))) = self.world.query_mut::<(&mut TileWalkerMovement,)>()
             .with::<(&ControllerTag,)>()
             .into_iter()
@@ -115,6 +141,8 @@ impl Logic {
         };
 
         dir.0 = Some(new_dir);
+
+        self.state = GameState::MovingPlayer(PLAYER_MOVE_TIME);
     }
 
     pub fn debug_ui(&mut self) {
@@ -123,6 +151,7 @@ impl Logic {
         .ui(&mut *root_ui(), |ui| {
             ui.tree_node(hash!(), "general info", |ui| {
                 ui.label(None, &format!("Total number of entities: {}", self.world.len()));
+                ui.label(None, &format!("State: {:?}", self.state));
             });
             ui.tree_node(hash!(), "tile walkers", |ui| {
                 use tile::*;
