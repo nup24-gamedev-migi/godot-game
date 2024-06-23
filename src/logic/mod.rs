@@ -57,7 +57,7 @@ pub enum GameState {
     MovingPlayer(Duration),
 }
 
-const PLAYER_MOVE_TIME: Duration = Duration::from_millis(500);
+const PLAYER_MOVE_TIME: Duration = Duration::from_millis(120);
 
 pub struct Logic {
     state: GameState,
@@ -111,16 +111,19 @@ impl Logic {
         tile::despawn_tiles(&mut self.world).unwrap();
     }
 
+    fn on_ready(&mut self) {
+        tile_walker::update_walkers(&self.world);
+    }
+
     pub fn update(&mut self, dt: Duration) {
         match &mut self.state {
-            GameState::Ready => {
-                tile_walker::update_walkers(&self.world);
-            },
+            GameState::Ready => self.on_ready(),
             GameState::MovingPlayer(timer) => {
                 *timer = timer.saturating_sub(dt);
 
                 if timer.is_zero() {
                     self.state = GameState::Ready;
+                    self.on_ready();
                 }
             }
         }

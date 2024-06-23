@@ -18,6 +18,7 @@ async fn main() {
     let mut last_frame = Instant::now();
     loop {
         let curr_frame = Instant::now();
+        let dt = curr_frame.duration_since(last_frame);
 
         if is_key_down(KeyCode::A) {
             logic.move_player(logic::Direction::Left);
@@ -32,7 +33,7 @@ async fn main() {
             logic.move_player(logic::Direction::Down);
         }
 
-        logic.update(curr_frame.duration_since(last_frame));
+        logic.update(dt);
 
         clear_background(RED);
 
