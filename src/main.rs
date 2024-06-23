@@ -2,7 +2,6 @@ use std::time::Instant;
 
 use logic::Logic;
 use macroquad::prelude::*;
-use macroquad::ui::{widgets, hash, root_ui};
 
 mod logic;
 mod utils;
