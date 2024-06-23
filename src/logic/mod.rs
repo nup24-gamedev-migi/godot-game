@@ -1,10 +1,8 @@
-use std::borrow::{Borrow, BorrowMut};
 use std::time::Duration;
 
-use anyhow::Context;
 use macroquad::prelude::*;
 use macroquad::ui::{hash, root_ui, widgets};
-use hecs::{Entity, With, World};
+use hecs::{Entity, World};
 use tile::TileConfig;
 use tile_walker::TileWalkerMovement;
 use crate::utils::*;
