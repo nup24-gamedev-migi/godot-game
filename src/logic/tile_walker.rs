@@ -30,13 +30,12 @@ pub fn get_future_walker_tile(world: &World, walker: Entity) -> anyhow::Result<O
 
 pub fn update_walkers(world: &World) {
     for (e, (pos, dir)) in world.query::<(&mut TileWalkerPos, &mut TileWalkerMovement)>().iter() {
-        let Ok (new_pos) = get_future_walker_tile(world, e) else {
-            error!("Entity {:?} failed to move in dir {:?}", e, dir);
-            continue;
-        };
-        let Some(new_pos) = new_pos else { continue; };
+        let Some(dir) = dir.0.take() else { continue; };
 
-        pos.0 = new_pos;
-        dir.0 = None;
+        if let Some(new_pos) = tile::get_tile_neighbor(world, pos.0, dir) {
+            pos.0 = new_pos;
+        } else {
+            error!("Entity {:?} failed to move in dir {:?}", e, dir);
+        }
     }
 }
