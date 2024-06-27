@@ -91,4 +91,14 @@ impl TransactionSystem {
 
         res
     }
+
+    fn revert(&mut self, world: &World) -> anyhow::Result<()> {
+        let res = (&self.mutations[self.first_uncommitted()..])
+            .iter()
+            .try_for_each(|x| x.revert(world));
+
+        self.committed.pop();
+
+        res
+    }
 }
