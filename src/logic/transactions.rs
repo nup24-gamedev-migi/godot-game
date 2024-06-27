@@ -29,6 +29,21 @@ macro_rules! define_mutations {
 
                 Ok(())
             }
+
+            fn revert(self, world: &World, target: Entity) -> anyhow::Result<()> {
+                match self {
+                    $(
+                        MutationTy::$ty { from, .. } => {
+                            let mut q = world.query_one::<&mut $ty>(target)?;
+                            let r = q.get().ok_or_else(|| anyhow::anyhow!("Acquiting ref failed"))?;
+
+                            *r = from;
+                        }
+                    ),+
+                }
+
+                Ok(())
+            }
         }
     };
 }
@@ -47,6 +62,10 @@ pub struct Mutation {
 impl Mutation {
     fn apply(self, world: &World) -> anyhow::Result<()> {
         self.ty.apply(world, self.target)
+    }
+
+    fn revert(self, world: &World) -> anyhow::Result<()> {
+        self.ty.revert(world, self.target)
     }
 }
 
