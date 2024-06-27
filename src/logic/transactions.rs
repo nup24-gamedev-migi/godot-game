@@ -49,3 +49,27 @@ impl Mutation {
         self.ty.apply(world, self.target)
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct TransactionSystem {
+    mutations: Vec<Mutation>,
+    committed: Vec<usize>,
+}
+
+impl TransactionSystem {
+    fn first_uncommitted(&self) -> usize {
+        self.committed.last()
+            .map(|x| *x)
+            .unwrap_or(0)
+    }
+
+    fn commit(&mut self, world: &World) -> anyhow::Result<()> {
+        let res = (&self.mutations[self.first_uncommitted()..])
+            .iter()
+            .try_for_each(|x| x.apply(world));
+
+        self.committed.push(self.mutations.len());
+
+        res
+    }
+}
