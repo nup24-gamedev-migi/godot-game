@@ -15,7 +15,7 @@ macro_rules! define_mutations {
         }
 
         impl MutationTy {
-            pub fn apply(self, world: &World, target: Entity) -> anyhow::Result<()> {
+            fn apply(self, world: &World, target: Entity) -> anyhow::Result<()> {
                 match self {
                     $(
                         MutationTy::$ty { to, .. } => {
