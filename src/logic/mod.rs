@@ -4,13 +4,13 @@ use macroquad::prelude::*;
 use macroquad::ui::{hash, root_ui, widgets};
 use hecs::{Entity, World};
 use tile::TileConfig;
-use tile_walker::TileWalkerMovement;
 use crate::utils::*;
 
-pub mod tile;
-pub mod tile_walker;
+mod transactions;
+mod tile;
+mod tile_walker;
 
-pub const LOGIC_CFG_ENTITY : Entity = ent_from_id(0);
+const LOGIC_CFG_ENTITY : Entity = ent_from_id(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
@@ -49,6 +49,7 @@ pub enum TileKind {
     FallenBox,
 }
 
+// TODO: part of global entity
 #[derive(Debug, Clone, Copy)]
 pub enum GameState {
     Ready,
@@ -68,6 +69,9 @@ impl Logic {
 
         // Spawn cfg object
         world.spawn_at(LOGIC_CFG_ENTITY, ());
+
+        // Setup transaction system
+        transactions::init(&mut world).unwrap(); // TODO: return result
 
         Logic {
             state: GameState::Ready,
@@ -96,7 +100,6 @@ impl Logic {
             .ok_or_else(|| anyhow::anyhow!("Failed to find entrance"))?;
 
         self.world.spawn((
-            tile_walker::TileWalkerMovement(None),
             tile_walker::TileWalkerPos(player_tile),
             TileWalkerKind::Player,
             ControllerTag,
@@ -110,7 +113,7 @@ impl Logic {
     }
 
     fn on_ready(&mut self) {
-        tile_walker::update_walkers(&self.world);
+        transactions::update(&self.world).unwrap();
     }
 
     pub fn update(&mut self, dt: Duration) {
@@ -132,16 +135,21 @@ impl Logic {
             return;
         }
 
-        let Some((_, (dir,))) = self.world.query_mut::<(&mut TileWalkerMovement,)>()
-            .with::<(&ControllerTag,)>()
-            .into_iter()
-            .next()
-        else {
+        let player = self.world.query::<(&TileWalkerKind,)>()
+                                                        .into_iter()
+                                                        .find_map(|(e, (kind,))| match kind {
+                                                            TileWalkerKind::Player => Some(e),
+                                                            _ => None,
+                                                        });
+        let Some(player) = player else {
             error!("Player not found");
             return;
         };
 
-        dir.0 = Some(new_dir);
+        if let Err(e) = tile_walker::move_walker(&self.world, player, new_dir) {
+            error!("Failed to query player movement: {}", e);
+            return;
+        }
 
         self.state = GameState::MovingPlayer(PLAYER_MOVE_TIME);
     }
@@ -158,27 +166,11 @@ impl Logic {
                 use tile::*;
                 use tile_walker::*;
 
-                let mut query = self.world.query::<(&TileWalkerPos, &mut TileWalkerMovement, Option<&TileWalkerKind>)>();
-                for (e, (pos, dir, kind)) in query.iter() {
+                let mut query = self.world.query::<(&TileWalkerPos, Option<&TileWalkerKind>)>();
+                for (e, (pos, kind)) in query.iter() {
                     let (x, y) = get_tile_pos(&self.world, pos.0);
 
                     ui.label(None, &format!("ent: {:?} ({:?}) at {}, {}", e, kind, x, y));
-                    ui.same_line(0.);
-                    if ui.button(None, "L") {
-                        dir.0 = Some(Direction::Left);
-                    }
-                    ui.same_line(0.);
-                    if ui.button(None, "U") {
-                        dir.0 = Some(Direction::Up);
-                    }
-                    ui.same_line(0.);
-                    if ui.button(None, "R") {
-                        dir.0 = Some(Direction::Right);
-                    }
-                    ui.same_line(0.);
-                    if ui.button(None, "D") {
-                        dir.0 = Some(Direction::Down);
-                    }
                     ui.separator();
                 }
             });

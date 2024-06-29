@@ -60,6 +60,10 @@ pub struct Mutation {
 }
 
 impl Mutation {
+    pub fn new(target: Entity, ty: MutationTy) -> Self {
+        Self { target, ty }
+    }
+
     fn apply(self, world: &World) -> anyhow::Result<()> {
         self.ty.apply(world, self.target)
     }
