@@ -98,11 +98,10 @@ impl TransactionSystem {
     }
 
     fn revert(&mut self, world: &World) -> anyhow::Result<()> {
-        let res = (&self.mutations[self.first_uncommitted()..])
+        let Some(cmt) = self.committed.pop() else { return Ok(()); };
+        let res = (&self.mutations[self.first_uncommitted()..cmt])
             .iter()
             .try_for_each(|x| x.revert(world));
-
-        self.committed.pop();
 
         res
     }
@@ -135,6 +134,11 @@ impl TransactionSystem {
     fn add_mutation(&mut self, mu: Mutation) {
         self.mutations.push(mu);
     }
+
+    fn drop_uncommited(&mut self) {
+        self.mutations.drain(self.first_uncommitted()..)
+            .for_each(|_x| {});
+    }
 }
 
 pub fn init(world: &mut World) -> anyhow::Result<()> {
@@ -165,4 +169,12 @@ pub fn request_revert(world: &World) {
     let sys = sys.get().unwrap();
 
     sys.0.revert_pending = true;
+}
+
+pub fn drop_uncommited_mutations(world: &World) {
+    let mut sys = world.query_one::<(&mut TransactionSystem,)>(LOGIC_CFG_ENTITY)
+                    .expect("Transaction system must be initialised");
+    let sys = sys.get().unwrap();
+
+    sys.0.drop_uncommited();
 }
