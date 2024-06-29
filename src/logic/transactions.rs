@@ -124,7 +124,7 @@ impl TransactionSystem {
             self.revert_pending = false;
         }
 
-        while self.mutations_pending() {
+        if self.mutations_pending() {
             self.commit(world)?;
         }
 
