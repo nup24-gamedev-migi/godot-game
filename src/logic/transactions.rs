@@ -119,8 +119,6 @@ impl TransactionSystem {
         }
     }
 
-    fn revert_pending(&self) -> bool { self.revert_pending }
-
     fn update(&mut self, world: &World) -> anyhow::Result<()> {
         while self.mutations_pending() {
             self.commit(world)?;
@@ -159,4 +157,12 @@ pub fn update(world: &World) -> anyhow::Result<()> {
     let sys = sys.get().unwrap();
 
     sys.0.update(world)
+}
+
+pub fn request_revert(world: &World) {
+    let mut sys = world.query_one::<(&mut TransactionSystem,)>(LOGIC_CFG_ENTITY)
+                    .expect("Transaction system must be initialised");
+    let sys = sys.get().unwrap();
+
+    sys.0.revert_pending = true;
 }

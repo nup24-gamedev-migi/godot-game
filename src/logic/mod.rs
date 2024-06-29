@@ -9,6 +9,7 @@ use crate::utils::*;
 mod transactions;
 mod tile;
 mod tile_walker;
+mod filtering;
 
 const LOGIC_CFG_ENTITY : Entity = ent_from_id(0);
 
@@ -72,6 +73,7 @@ impl Logic {
 
         // Setup transaction system
         transactions::init(&mut world).unwrap(); // TODO: return result
+        filtering::init(&mut world, []).unwrap();
 
         Logic {
             state: GameState::Ready,
@@ -114,6 +116,7 @@ impl Logic {
 
     fn on_ready(&mut self) {
         transactions::update(&self.world).unwrap();
+        filtering::update(&self.world);
     }
 
     pub fn update(&mut self, dt: Duration) {
