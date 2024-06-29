@@ -122,13 +122,11 @@ impl TransactionSystem {
         if self.revert_pending {
             self.revert(world)?;
             self.revert_pending = false;
+
+            return Ok(());
         }
 
-        if self.mutations_pending() {
-            self.commit(world)?;
-        }
-
-        Ok(())
+        self.commit(world)
     }
 
     fn add_mutation(&mut self, mu: Mutation) {
