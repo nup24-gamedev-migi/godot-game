@@ -1,4 +1,4 @@
-use super::{tile_walker::TileWalkerPos, Entity, TileKind, World};
+use super::{tile_walker::TileWalkerPos, Entity, TileKind, World, LOGIC_CFG_ENTITY};
 
 macro_rules! define_mutations {
     (
@@ -70,9 +70,10 @@ impl Mutation {
 }
 
 #[derive(Clone, Debug)]
-pub struct TransactionSystem {
+struct TransactionSystem {
     mutations: Vec<Mutation>,
     committed: Vec<usize>,
+    revert_pending: bool,
 }
 
 impl TransactionSystem {
@@ -101,4 +102,57 @@ impl TransactionSystem {
 
         res
     }
+
+    fn mutations_pending(&self) -> bool {
+        self.first_uncommitted() < self.mutations.len()
+    }
+
+    fn new() -> Self {
+        Self {
+            mutations: Vec::new(),
+            committed: Vec::new(),
+            revert_pending: false,
+        }
+    }
+
+    fn revert_pending(&self) -> bool { self.revert_pending }
+
+    fn update(&mut self, world: &World) -> anyhow::Result<()> {
+        while self.mutations_pending() {
+            self.commit(world)?;
+        }
+
+        if self.revert_pending {
+            self.revert(world)?;
+            self.revert_pending = false;
+        }
+
+        Ok(())
+    }
+
+    fn add_mutation(&mut self, mu: Mutation) {
+        self.mutations.push(mu);
+    }
+}
+
+pub fn init(world: &mut World) -> anyhow::Result<()> {
+    world.insert_one(LOGIC_CFG_ENTITY, TransactionSystem::new())?;
+
+    Ok(())
+}
+
+pub fn add_mutation(world: &World, mu: Mutation) {
+    let mut sys = world.query_one::<(&mut TransactionSystem,)>(LOGIC_CFG_ENTITY)
+                                                        .expect("Transaction system must be initialised");
+    let sys = sys.get().unwrap();
+
+    sys.0.add_mutation(mu);
+}
+
+pub fn update(world: &World) -> anyhow::Result<()> {
+    let mut sys = world.query_one::<(&mut TransactionSystem,)>(LOGIC_CFG_ENTITY)
+                                                        .expect("Transaction system must be initialised");
+    let sys = sys.get().unwrap();
+
+    sys.0.update(world)
 }
