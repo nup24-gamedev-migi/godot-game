@@ -58,6 +58,7 @@ pub enum GameState {
 }
 
 const PLAYER_MOVE_TIME: Duration = Duration::from_millis(120);
+const RETRY_COUNT: u32 = 10;
 
 pub struct Logic {
     state: GameState,
@@ -116,7 +117,24 @@ impl Logic {
 
     fn on_ready(&mut self) {
         transactions::update(&self.world).unwrap();
-        filtering::update(&self.world);
+
+        let mut retry_cnt = RETRY_COUNT;
+        loop {
+            if filtering::update(&self.world) {
+                break;
+            }
+
+            if retry_cnt == 0 {
+                transactions::update(&self.world).unwrap();
+                transactions::drop_uncommited_mutations(&self.world);
+                break;
+            }
+            retry_cnt -= 1;
+
+            /* fixers called here */
+
+            transactions::update(&self.world).unwrap();
+        }
     }
 
     pub fn update(&mut self, dt: Duration) {
