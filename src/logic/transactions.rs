@@ -119,13 +119,13 @@ impl TransactionSystem {
     }
 
     fn update(&mut self, world: &World) -> anyhow::Result<()> {
-        while self.mutations_pending() {
-            self.commit(world)?;
-        }
-
         if self.revert_pending {
             self.revert(world)?;
             self.revert_pending = false;
+        }
+
+        while self.mutations_pending() {
+            self.commit(world)?;
         }
 
         Ok(())
