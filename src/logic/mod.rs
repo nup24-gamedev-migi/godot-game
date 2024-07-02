@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use macroquad::prelude::*;
 use macroquad::ui::{hash, root_ui, widgets};
-use hecs::{Entity, World};
+use hecs::{CommandBuffer, Entity, World};
 use tile::TileConfig;
 use crate::utils::*;
 
@@ -10,6 +10,7 @@ mod transactions;
 mod tile;
 mod tile_walker;
 mod filtering;
+mod collision;
 
 const LOGIC_CFG_ENTITY : Entity = ent_from_id(0);
 
@@ -62,6 +63,7 @@ const RETRY_COUNT: u32 = 10;
 
 pub struct Logic {
     state: GameState,
+    buffer: CommandBuffer,
     world: World,
 }
 
@@ -78,6 +80,7 @@ impl Logic {
 
         Logic {
             state: GameState::Ready,
+            buffer: CommandBuffer::new(),
             world,
         }
     }
@@ -116,25 +119,25 @@ impl Logic {
     }
 
     fn on_ready(&mut self) {
-        transactions::update(&self.world).unwrap();
+        // transactions::update(&self.world).unwrap();
 
-        let mut retry_cnt = RETRY_COUNT;
-        loop {
-            if filtering::update(&self.world) {
-                break;
-            }
+        // let mut retry_cnt = RETRY_COUNT;
+        // loop {
+        //     if filtering::update(&self.world) {
+        //         break;
+        //     }
 
-            if retry_cnt == 0 {
-                transactions::update(&self.world).unwrap();
-                transactions::drop_uncommited_mutations(&self.world);
-                break;
-            }
-            retry_cnt -= 1;
+        //     if retry_cnt == 0 {
+        //         transactions::update(&self.world).unwrap();
+        //         transactions::drop_uncommited_mutations(&self.world);
+        //         break;
+        //     }
+        //     retry_cnt -= 1;
 
-            /* fixers called here */
+        //     /* fixers called here */
 
-            transactions::update(&self.world).unwrap();
-        }
+        //     transactions::update(&self.world).unwrap();
+        // }
     }
 
     pub fn update(&mut self, dt: Duration) {
