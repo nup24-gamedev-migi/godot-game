@@ -103,19 +103,6 @@ fn egui_debug_level_ui(
     ui.label(format!("walker count: {walker_count}"));
     ui.label(format!("active walker count: {active_walker_count}"));
 
-    // let resp = egui::ScrollArea::both()
-    //     .max_height(200.)
-    //     .max_width(200.)
-    //     .auto_shrink([false, false])
-    //     .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
-    //     .show(ui, |ui| {
-    //     });
-    // let mut frame = egui::Frame::canvas(&egui::Style::default()).begin(ui);
-    // frame.content_ui.set_width(width as f32 * DEBUG_RECT_SIZE);
-    // frame.content_ui.set_height(height as f32 * DEBUG_RECT_SIZE);
-    // let painter = frame.content_ui.painter();
-    // egui_debug_level_grid(&painter, width, height, walker_q);
-    // frame.end(ui);
     egui::Frame::group(&egui::Style::default())
         .show(ui, |ui| {
             ui.set_width(width as f32 * DEBUG_RECT_SIZE);
