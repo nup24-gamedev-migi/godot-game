@@ -61,6 +61,12 @@ fn setup_sys(mut cmds: Commands) {
             TilePos(1, 0),
             WalkerType::Box
         ));
+
+    cmds
+        .spawn(WalkerBundle::new(
+            TilePos(3, 3),
+            WalkerType::Null
+        ));
 }
 
 fn setup(app: &mut App) {
