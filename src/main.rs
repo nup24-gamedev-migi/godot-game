@@ -24,8 +24,9 @@ fn main() {
     app
         .add_plugins(DefaultPlugins
             .set(LogPlugin {
-                level: Level::DEBUG,
-                filter: "info,hunted_thief::player=trace,hunted_thief::collision=trace,hunted_thief::game_state=trace".to_string(),
+                level: Level::INFO,
+                filter: "".to_string(),
+                // filter: "info,hunted_thief::player=trace,hunted_thief::collision=trace,hunted_thief::game_state=trace".to_string(),
                 update_subscriber: None,
             }))
         .add_plugins(EguiPlugin);
