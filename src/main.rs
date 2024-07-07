@@ -43,8 +43,10 @@ fn setup_sys(mut cmds: Commands) {
         &mut cmds,
         10,
         10,
-        |_x, y| TileBundle::new(
-            if y < 9 {
+        |x, y| TileBundle::new(
+            if x == 5 && y == 5 {
+                TileType::Treasure
+            } else if y < 9 {
                 TileType::Floor
             } else {
                 TileType::Void
