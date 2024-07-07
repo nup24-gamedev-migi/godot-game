@@ -13,6 +13,7 @@ mod collision;
 mod bundles;
 mod game_state;
 mod debugging;
+mod void_fall;
 
 fn main() {
     let mut app = App::new();
@@ -64,6 +65,12 @@ fn setup_sys(mut cmds: Commands) {
 
     cmds
         .spawn(WalkerBundle::new(
+            TilePos(2, 2),
+            WalkerType::Box
+        ));
+
+    cmds
+        .spawn(WalkerBundle::new(
             TilePos(3, 3),
             WalkerType::Null
         ));
@@ -75,5 +82,6 @@ fn setup(app: &mut App) {
         .add_systems(Startup, setup_sys)
         .add_systems(PreUpdate, player::player_input)
         .add_systems(PreUpdate, game_state::react_to_input.after(player::player_input))
-        .add_systems(Update, collision::solve_collisions);
+        .add_systems(Update, collision::solve_collisions)
+        .add_systems(Update, void_fall::handle_void_fall.after(collision::solve_collisions));
 }
