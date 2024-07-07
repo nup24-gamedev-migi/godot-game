@@ -12,6 +12,7 @@ mod prelude;
 mod collision;
 mod bundles;
 mod game_state;
+mod debugging;
 
 fn main() {
     let mut app = App::new();
@@ -53,6 +54,7 @@ fn setup_sys(mut cmds: Commands) {
 
 fn setup(app: &mut App) {
     app
+        .add_systems(Update, debugging::egui_debug_level)
         .add_systems(Startup, setup_sys)
         .add_systems(PreUpdate, player::player_input)
         .add_systems(PreUpdate, game_state::react_to_input.after(player::player_input))
