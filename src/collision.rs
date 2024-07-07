@@ -32,7 +32,9 @@ pub fn solve_collisions(
         })
         .filter_map(|(e, dir)| {
             let (_, pos, _, ty) = walker_q.get(e).ok()?;
+
             if ty.is_null() {
+                trace!("Rejecting move for {e:?} (null)");
                 return None;
             }
 
