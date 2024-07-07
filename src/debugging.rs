@@ -43,6 +43,8 @@ fn egui_debug_level_grid(
         })
     };
     let tile_tooltip_contents = |x: u32, y: u32, ui: &mut egui::Ui| {
+        ui.label(format!("({x}, {y})"));
+
         match tile_at(x, y) {
             Ok(ty) => ui.label(format!("tile ty: {ty:?}")),
             Err(e) => ui.colored_label(egui::Color32::RED,
