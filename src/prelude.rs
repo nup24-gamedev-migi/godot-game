@@ -30,5 +30,6 @@ pub enum TileType {
     Void        = 0,
     Floor       = 1,
     Entrance    = 2,
-    DroppedBox  = 3,
+    Treasure    = 3,
+    DroppedBox  = 4,
 }
