@@ -20,6 +20,7 @@ fn egui_debug_tile_col(ty: TileType) -> egui::Color32 {
         TileType::Floor => egui::Color32::WHITE,
         TileType::Entrance => egui::Color32::GREEN,
         TileType::Treasure => egui::Color32::YELLOW,
+        TileType::DroppedBox => egui::Color32::from_rgb(0, 0, 100),
     }
 }
 

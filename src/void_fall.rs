@@ -18,7 +18,7 @@ pub fn handle_void_fall(
             return;
         }
 
-        *tile_ty = TileType::Floor;
+        *tile_ty = TileType::DroppedBox;
         *ty = WalkerType::Null;
     })
 }
