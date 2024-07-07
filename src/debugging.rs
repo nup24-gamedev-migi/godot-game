@@ -28,7 +28,7 @@ fn egui_debug_level_grid(
     canvas_rect: egui::Rect,
     ui: &mut egui::Ui,
     tile_st: &TileStorage,
-    walker_q: &Query<(&TilePos, &WalkerType)>,
+    walker_q: &Query<(Entity, &TilePos, &WalkerType)>,
     tile_q: &Query<&TileType>,
 ) {
     let width = tile_st.width();
@@ -38,9 +38,9 @@ fn egui_debug_level_grid(
                         .ok_or_else(|| anyhow::anyhow!("Bad tile pos"))?;
         anyhow::Ok(*tile_q.get(e)?)
     };
-    let walker_at = |x: u32, y: u32| {
-        walker_q.iter().find_map(|(pos, ty)| {
-            (pos.0 == x && pos.1 == y).then_some(*ty)
+    let walkers_at = |x: u32, y: u32| {
+        walker_q.iter().filter_map(move |(e, pos, ty)| {
+            (pos.0 == x && pos.1 == y).then_some((e, *ty))
         })
     };
     let tile_tooltip_contents = |x: u32, y: u32, ui: &mut egui::Ui| {
@@ -51,9 +51,9 @@ fn egui_debug_level_grid(
             ),
         };
 
-        if let Some(walker) = walker_at(x, y) {
-            ui.label(format!("walker: {walker:?}"));
-        }
+        walkers_at(x, y).for_each(|(e, walker)| {
+            ui.label(format!("walker: {walker:?} ({e:?})"));
+        });
     };
     let tile_tooltip = |x: u32, y: u32, ui: &mut egui::Ui| {
         egui::popup::show_tooltip(
@@ -104,7 +104,7 @@ fn egui_debug_level_grid(
             );
 
             let decor_pos = tile_rect.center();
-            if let Some(ty) = walker_at(x, y) {
+            walkers_at(x, y).for_each(|(_, ty)| {
                 painter.circle(
                     decor_pos,
                     DEBUG_RECT_SIZE * 0.4,
@@ -114,7 +114,7 @@ fn egui_debug_level_grid(
                         color: egui_debug_walker_col(ty)
                     },
                 );
-            }
+            })
         }
     }
 }
@@ -122,14 +122,14 @@ fn egui_debug_level_grid(
 fn egui_debug_level_ui(
     ui: &mut egui::Ui,
     tile_st_q: &Query<&TileStorage>,
-    walker_q: &Query<(&TilePos, &WalkerType)>,
+    walker_q: &Query<(Entity, &TilePos, &WalkerType)>,
     tile_q: &Query<&TileType>,
 ) -> anyhow::Result<()> {
     let tile_st = tile_st_q.get_single()
         .context("Acquiring tile storage")?;
     let walker_count = walker_q.iter().count();
     let active_walker_count = walker_q.iter()
-        .filter(|(_, ty)| !ty.is_null())
+        .filter(|(_, _, ty)| !ty.is_null())
         .count();
     let width = tile_st.width();
     let height = tile_st.height();
@@ -160,7 +160,7 @@ fn egui_debug_level_ui(
 pub fn egui_debug_level(
     mut contexts: EguiContexts,
     tile_st_q: Query<&TileStorage>,
-    walker_q: Query<(&TilePos, &WalkerType)>,
+    walker_q: Query<(Entity, &TilePos, &WalkerType)>,
     tile_q: Query<&TileType>,
 ) {
     egui::Window::new("Level debug").show(
