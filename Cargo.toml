@@ -5,10 +5,19 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1"
-macroquad = "0.4"
-hecs = "0.10"
+bevy = "0.13.2"
+bevy_egui = "0.27.1"
+smallvec = "1"
 strum = "0.26.2"
 strum_macros = "0.26"
 
 [dev-dependencies]
 rand = "0.8"
+
+# Enable a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+[profile.dev.package."*"]
+opt-level = 3
