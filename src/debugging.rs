@@ -1,5 +1,5 @@
 use anyhow::Context;
-use egui::Layout;
+use egui::{Color32, Layout};
 
 use crate::prelude::*;
 use crate::tiles::{TilePos, TileStorage};
@@ -14,20 +14,42 @@ fn egui_debug_walker_col(ty: WalkerType) -> egui::Color32 {
     }
 }
 
+fn egui_debug_tile_col(ty: TileType) -> egui::Color32 {
+    match ty {
+        TileType::Void => egui::Color32::DARK_GRAY,
+        TileType::Floor => egui::Color32::WHITE,
+        TileType::Entrance => egui::Color32::GREEN,
+        TileType::Treasure => egui::Color32::YELLOW,
+    }
+}
+
 fn egui_debug_level_grid(
     canvas_rect: egui::Rect,
     ui: &mut egui::Ui,
-    width: u32,
-    height: u32,
+    tile_st: &TileStorage,
     walker_q: &Query<(&TilePos, &WalkerType)>,
+    tile_q: &Query<&TileType>,
 ) {
+    let width = tile_st.width();
+    let height = tile_st.height();
+    let tile_at = |x: u32, y: u32| {
+        let e = tile_st.get_tile_at_pos(x, y)
+                        .ok_or_else(|| anyhow::anyhow!("Bad tile pos"))?;
+        anyhow::Ok(*tile_q.get(e)?)
+    };
     let walker_at = |x: u32, y: u32| {
         walker_q.iter().find_map(|(pos, ty)| {
             (pos.0 == x && pos.1 == y).then_some(*ty)
         })
     };
     let tile_tooltip_contents = |x: u32, y: u32, ui: &mut egui::Ui| {
-        ui.label("TODO: tile type");
+        match tile_at(x, y) {
+            Ok(ty) => ui.label(format!("tile ty: {ty:?}")),
+            Err(e) => ui.colored_label(egui::Color32::RED,
+                format!("Failed to get tile type ({e:?}")
+            ),
+        };
+
         if let Some(walker) = walker_at(x, y) {
             ui.label(format!("walker: {walker:?}"));
         }
@@ -54,15 +76,26 @@ fn egui_debug_level_grid(
             ui.set_width(DEBUG_RECT_SIZE);
             ui.set_height(DEBUG_RECT_SIZE);
 
-            if ui.ui_contains_pointer() {
+            let pointer_inside = ui.ui_contains_pointer();
+            if pointer_inside {
                 tile_tooltip(x, y, &mut ui);
+            };
+
+            let tile_base_col = match tile_at(x, y) {
+                Ok(ty) => egui_debug_tile_col(ty),
+                Err(_) => Color32::RED,
+            };
+            let tile_col = if pointer_inside {
+                tile_base_col
+            } else {
+                tile_base_col.gamma_multiply(0.5)
             };
 
             let painter = ui.painter_at(canvas_rect);
             painter.rect(
                 tile_rect,
                 0.,
-                egui::Color32::WHITE,
+                tile_col,
                 egui::Stroke {
                     width: 1.,
                     color: egui::Color32::BLACK,
@@ -89,6 +122,7 @@ fn egui_debug_level_ui(
     ui: &mut egui::Ui,
     tile_st_q: &Query<&TileStorage>,
     walker_q: &Query<(&TilePos, &WalkerType)>,
+    tile_q: &Query<&TileType>,
 ) -> anyhow::Result<()> {
     let tile_st = tile_st_q.get_single()
         .context("Acquiring tile storage")?;
@@ -113,9 +147,9 @@ fn egui_debug_level_ui(
             egui_debug_level_grid(
                 painter_rect,
                 ui,
-                width,
-                height,
-                walker_q
+                tile_st,
+                walker_q,
+                tile_q,
             );
         });
 
@@ -126,11 +160,18 @@ pub fn egui_debug_level(
     mut contexts: EguiContexts,
     tile_st_q: Query<&TileStorage>,
     walker_q: Query<(&TilePos, &WalkerType)>,
+    tile_q: Query<&TileType>,
 ) {
     egui::Window::new("Level debug").show(
         contexts.ctx_mut(),
         |ui| {
-            if let Err(e) = egui_debug_level_ui(ui, &tile_st_q, &walker_q) {
+            let res = egui_debug_level_ui(
+                ui,
+                &tile_st_q,
+                &walker_q,
+                &tile_q
+            );
+            if let Err(e) = res {
                 ui.label(format!("No level debug ({e})"));
             }
         }

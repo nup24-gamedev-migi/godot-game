@@ -23,3 +23,12 @@ impl WalkerType {
         *self == WalkerType::Null
     }
 }
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Reflect, Component)]
+pub enum TileType {
+    Void        = 0,
+    Floor       = 1,
+    Entrance    = 2,
+    Treasure    = 3,
+}

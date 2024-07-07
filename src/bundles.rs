@@ -23,3 +23,21 @@ impl WalkerBundle {
         }
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+#[derive(Bundle, Reflect)]
+pub struct TileBundle {
+    pub pos: TilePos,
+    pub neighbor: TileNeighbor,
+    pub ty: TileType,
+}
+
+impl TileBundle {
+    pub fn new(ty: TileType) -> Self {
+        Self {
+            ty,
+            pos: TilePos(0, 0),
+            neighbor: TileNeighbor::new(),
+        }
+    }
+}

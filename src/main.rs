@@ -1,5 +1,5 @@
 use bevy::log::{Level, LogPlugin};
-use bundles::WalkerBundle;
+use bundles::{TileBundle, WalkerBundle};
 use player::PlayerState;
 use prelude::*;
 
@@ -34,7 +34,18 @@ fn main() {
 fn setup_sys(mut cmds: Commands) {
     use tiles::*;
 
-    spawn_tiles(&mut cmds, 10, 10);
+    spawn_tiles(
+        &mut cmds,
+        10,
+        10,
+        |_x, y| TileBundle::new(
+            if y < 9 {
+                TileType::Floor
+            } else {
+                TileType::Void
+            }
+        )
+    );
 
     cmds
         .insert_resource(game_state::InGameState::new());

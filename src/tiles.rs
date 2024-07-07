@@ -25,6 +25,15 @@ pub struct TileNeighbor {
 }
 
 impl TileNeighbor {
+    pub fn new() -> Self {
+        Self {
+            left: None,
+            up: None,
+            right: None,
+            down: None,
+        }
+    }
+
     pub fn left(&self) -> Option<Entity> {
         self.left
     }
@@ -93,10 +102,25 @@ impl TileStorage {
  * Set up tile poses and neighbours with special systems
  */
 
-pub fn spawn_tiles(cmds: &mut Commands, width: u32, height: u32) {
+pub fn spawn_tiles<B, F>(
+    cmds: &mut Commands,
+    width: u32,
+    height: u32,
+    mut bundle_map: F,
+)
+where
+    B: Bundle,
+    F: FnMut(u32, u32) -> B,
+{
+    let ents = (0..height)
+        .flat_map(|y|
+            (0..width).map(move |x| (x, y))
+        )
+        .map(|(x, y)| bundle_map(x, y))
+        .map(|b| cmds.spawn(b).id());
     let tile_storage = TileStorage::new(
         width, height,
-        (0..width*height).map(|_| cmds.spawn_empty().id())
+        ents
     );
 
     for x in 0..width {
@@ -104,6 +128,7 @@ pub fn spawn_tiles(cmds: &mut Commands, width: u32, height: u32) {
             let pos = TilePos(x, y);
             let tl = tile_storage.get_tile_at(pos).unwrap();
             cmds.entity(tl)
+                .insert(pos)
                 .insert(TileNeighbor {
                     left: tile_storage.get_tile_at(pos.apply_direction(MoveDirection::Left)),
                     up: tile_storage.get_tile_at(pos.apply_direction(MoveDirection::Up)),
