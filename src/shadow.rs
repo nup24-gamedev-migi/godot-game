@@ -55,13 +55,14 @@ pub fn process_player_move(
         .all(|state| state.0);
     let Some(dir) = st.new_direction
         else { return; };
+    let from = pos.apply_direction(dir.reverse());
 
     if record {
-        debug!("history <- from:{pos:?} dir:{dir:?}");
+        debug!("history <- from:{from:?} dir:{dir:?}");
 
         hist.list.push(PlayerMoveHistoryEntry {
             dir,
-            from: *pos,
+            from,
         });
         return;
     }

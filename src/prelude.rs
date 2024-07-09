@@ -10,6 +10,17 @@ pub enum MoveDirection {
     Down    = 3,
 }
 
+impl MoveDirection {
+    pub fn reverse(&self) -> Self {
+        match self {
+            MoveDirection::Left => MoveDirection::Right,
+            MoveDirection::Up => MoveDirection::Down,
+            MoveDirection::Right => MoveDirection::Left,
+            MoveDirection::Down => MoveDirection::Up,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[derive(Reflect, Component)]
 pub enum WalkerType {
