@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 use crate::tiles::*;
 use crate::collision::*;
+use crate::shadow::*;
 
 #[derive(Clone, Copy, Debug)]
 #[derive(Bundle, Reflect)]
@@ -30,6 +31,7 @@ pub struct TileBundle {
     pub pos: TilePos,
     pub neighbor: TileNeighbor,
     pub ty: TileType,
+    pub shadow_state: TileShadowState,
 }
 
 impl TileBundle {
@@ -38,6 +40,7 @@ impl TileBundle {
             ty,
             pos: TilePos(0, 0),
             neighbor: TileNeighbor::new(),
+            shadow_state: TileShadowState::Free,
         }
     }
 }

@@ -58,6 +58,8 @@ fn setup_sys(mut cmds: Commands) {
     cmds
         .insert_resource(game_state::InGameState::new());
     cmds
+        .insert_resource(shadow::PlayerMoveHistory::new());
+    cmds
         .spawn(WalkerBundle::new(
             TilePos(0, 0),
             WalkerType::Player
@@ -103,5 +105,7 @@ fn setup(app: &mut App) {
         .add_systems(PreUpdate, game_state::react_to_input.after(player::player_input))
         .add_systems(Update, collision::solve_collisions)
         .add_systems(Update, void_fall::handle_void_fall.after(collision::solve_collisions))
-        .add_systems(Update, treasure_steal::treasure_stealing.after(collision::solve_collisions));
+        .add_systems(Update, treasure_steal::treasure_stealing.after(void_fall::handle_void_fall))
+        .add_systems(Update, shadow::process_player_move.after(treasure_steal::treasure_stealing))
+        .add_systems(Update, shadow::do_shadow_walk.after(shadow::process_player_move));
 }
