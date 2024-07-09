@@ -4,7 +4,7 @@ use egui::{Color32, Layout};
 use crate::prelude::*;
 use crate::tiles::{TilePos, TileStorage};
 
-const DEBUG_RECT_SIZE: f32 = 10.;
+const DEBUG_RECT_SIZE: f32 = 20.;
 
 fn egui_debug_walker_col(ty: WalkerType) -> egui::Color32 {
     match ty {
