@@ -57,6 +57,8 @@ pub fn process_player_move(
         else { return; };
 
     if record {
+        debug!("history <- from:{pos:?} dir:{dir:?}");
+
         hist.list.push(PlayerMoveHistoryEntry {
             dir,
             from: *pos,
