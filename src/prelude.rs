@@ -19,6 +19,15 @@ impl MoveDirection {
             MoveDirection::Down => MoveDirection::Up,
         }
     }
+
+    pub fn to_egui_vec2(&self) -> egui::Vec2 {
+        match self {
+            MoveDirection::Left => egui::vec2(-1., 0.),
+            MoveDirection::Up => egui::vec2(0., -1.),
+            MoveDirection::Right => egui::vec2(1., 0.),
+            MoveDirection::Down => egui::vec2(0., 1.),
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

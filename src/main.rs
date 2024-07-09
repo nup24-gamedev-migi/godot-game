@@ -107,5 +107,6 @@ fn setup(app: &mut App) {
         .add_systems(Update, void_fall::handle_void_fall.after(collision::solve_collisions))
         .add_systems(Update, treasure_steal::treasure_stealing.after(void_fall::handle_void_fall))
         .add_systems(Update, shadow::process_player_move.after(treasure_steal::treasure_stealing))
-        .add_systems(Update, shadow::do_shadow_walk.after(shadow::process_player_move));
+        .add_systems(Update, shadow::do_shadow_walk.after(shadow::process_player_move))
+        .add_systems(Update, debugging::egui_debug_shadow.after(shadow::do_shadow_walk));
 }
