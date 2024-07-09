@@ -12,7 +12,7 @@ pub fn solve_collisions(
     mut force_map: Local<HashMap<TilePos, (Entity, MoveDirection)>>,
     mut queue: Local<VecDeque<(Entity, MoveDirection, TilePos)>>,
     tile_st_q: Query<&TileStorage>,
-    external_force_q: Query<(Entity, &PlayerState)>,
+    mut external_force_q: Query<(Entity, &mut PlayerState)>,
     mut walker_q: Query<(Entity, &mut TilePos, &mut JustMoved, &WalkerType)>,
 ) {
     /* Reset to clean state */
@@ -26,9 +26,9 @@ pub fn solve_collisions(
     /* The algorithm */
     force_map.clear();
     queue.clear();
-    external_force_q.iter()
-        .filter_map(|(e, player)| {
-            player.new_direction.map(|dir| (e, dir))
+    external_force_q.iter_mut()
+        .filter_map(|(e, mut player)| {
+            player.new_direction.take().map(|dir| (e, dir))
         })
         .filter_map(|(e, dir)| {
             let (_, pos, _, ty) = walker_q.get(e).ok()?;
@@ -95,6 +95,14 @@ pub fn solve_collisions(
     force_map.values().for_each(|(e, dir)| {
         let Ok((_, mut pos, mut moved, ty)) = walker_q.get_mut(*e)
             else { error!("Entity {e:?} not a walker"); return; };
+
+        match external_force_q.get_mut(*e) {
+            Ok((_, mut st)) => {
+                debug!("{e:?}\tnew_dir{dir:?}");
+                st.new_direction = Some(*dir);
+            },
+            Err(e) => debug!("{e:?}: not player"),
+        }
 
         *pos = pos.apply_direction(*dir);
         *moved = JustMoved(true);
