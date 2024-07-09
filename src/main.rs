@@ -10,6 +10,7 @@ use treasure_steal::TreasureState;
 // mod utils;
 mod tiles;
 mod player;
+mod shadow;
 mod prelude;
 mod collision;
 mod bundles;
@@ -94,6 +95,7 @@ fn spawn_treasure(
 
 fn setup(app: &mut App) {
     app
+        .add_systems(PostUpdate, player::player_reset)
         .add_systems(Update, debugging::egui_debug_level)
         .add_systems(Startup, setup_sys)
         .add_systems(Startup, spawn_treasure.after(setup_sys))

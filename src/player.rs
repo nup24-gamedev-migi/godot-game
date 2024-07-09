@@ -14,6 +14,15 @@ impl PlayerState {
     }
 }
 
+pub fn player_reset(
+    mut player_q: Query<&mut PlayerState>,
+) {
+    let Ok(mut st) = player_q.get_single_mut()
+        else { return; };
+
+    st.new_direction = None;
+}
+
 pub fn player_input(
     mut player_q: Query<&mut PlayerState>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
