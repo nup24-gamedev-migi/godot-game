@@ -101,6 +101,26 @@ pub fn do_shadow_walk(
             TileShadowState::Occupied => {
                 *st = TileShadowState::Cycle;
 
+                let correct = stack.iter().take_while(|x| **x != pos)
+                    .all(|pos| {
+                        trace!("\t>check: {pos:?}");
+
+                        let Some(tile_e) = tile_st.get_tile_at(*pos)
+                            else { error!("Invalid tile pos {pos:?}"); return false; };
+
+                        match tile_q.get(tile_e) {
+                            Ok(x) => *x == TileShadowState::Occupied,
+                            Err(e) => {
+                                error!("Error fetching tile state at {pos:?}: {e:?}");
+                                false
+                            },
+                        }
+                    });
+
+                if !correct {
+                    continue;
+                }
+
                 let res = stack.iter().take_while(|x| **x != pos)
                     .try_for_each(|pos| {
                         trace!("\t>rlbck: {pos:?}");
