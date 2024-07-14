@@ -28,7 +28,7 @@ fn main() {
                 level: Level::INFO,
                 filter: "".to_string(),
                 // filter: "info,hunted_thief::player=trace,hunted_thief::collision=trace,hunted_thief::game_state=trace".to_string(),
-                update_subscriber: None,
+                custom_layer: |_| None,
             }))
         .add_plugins(EguiPlugin);
 
