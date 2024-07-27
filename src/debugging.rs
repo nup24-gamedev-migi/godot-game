@@ -69,65 +69,73 @@ fn egui_debug_level_grid(
     let tile_tooltip = |x: u32, y: u32, ui: &mut egui::Ui| {
         egui::popup::show_tooltip(
             ui.ctx(),
+            ui.layer_id(),
             egui::Id::new(("map", x, y)),
             |ui| tile_tooltip_contents(x, y, ui),
         );
     };
 
-    for y in 0..height {
-        for x in 0..width {
-            let pos =
-                egui::pos2(x as f32, y as f32) * DEBUG_RECT_SIZE
-                    + canvas_rect.min.to_vec2();
-            let tile_rect = egui::Rect {
-                min: pos,
-                max: pos + egui::vec2(DEBUG_RECT_SIZE, DEBUG_RECT_SIZE),
-            };
+    ui.scope(|ui| {
+        ui.set_height(canvas_rect.height());
+        ui.set_width(canvas_rect.width());
 
-            let mut ui = ui.child_ui(tile_rect, Layout::default());
-            ui.set_width(DEBUG_RECT_SIZE);
-            ui.set_height(DEBUG_RECT_SIZE);
+        for y in 0..height {
+            for x in 0..width {
+                let pos =
+                    egui::pos2(x as f32, y as f32) * DEBUG_RECT_SIZE
+                        + canvas_rect.min.to_vec2();
+                let tile_rect = egui::Rect {
+                    min: pos,
+                    max: pos + egui::vec2(DEBUG_RECT_SIZE, DEBUG_RECT_SIZE),
+                };
 
-            let pointer_inside = ui.ui_contains_pointer();
-            if pointer_inside {
-                tile_tooltip(x, y, &mut ui);
-            };
+                ui.scope(|ui| {
+                    ui.set_clip_rect(tile_rect);
+                    ui.set_width(DEBUG_RECT_SIZE);
+                    ui.set_height(DEBUG_RECT_SIZE);
 
-            let tile_base_col = match tile_at(x, y) {
-                Ok(ty) => egui_debug_tile_col(ty),
-                Err(_) => Color32::RED,
-            };
-            let tile_col = if pointer_inside {
-                tile_base_col
-            } else {
-                tile_base_col.gamma_multiply(0.5)
-            };
+                    let pointer_inside = ui.rect_contains_pointer(tile_rect);
+                    if pointer_inside {
+                        tile_tooltip(x, y, ui);
+                    };
 
-            let painter = ui.painter_at(canvas_rect);
-            painter.rect(
-                tile_rect,
-                0.,
-                tile_col,
-                egui::Stroke {
-                    width: 1.,
-                    color: egui::Color32::BLACK,
-                },
-            );
+                    let tile_base_col = match tile_at(x, y) {
+                        Ok(ty) => egui_debug_tile_col(ty),
+                        Err(_) => Color32::RED,
+                    };
+                    let tile_col = if pointer_inside {
+                        tile_base_col
+                    } else {
+                        tile_base_col.gamma_multiply(0.5)
+                    };
 
-            let decor_pos = tile_rect.center();
-            walkers_at(x, y).for_each(|(_, ty)| {
-                painter.circle(
-                    decor_pos,
-                    DEBUG_RECT_SIZE * 0.4,
-                    egui::Color32::TRANSPARENT,
-                    egui::Stroke {
-                        width: 2.,
-                        color: egui_debug_walker_col(ty)
-                    },
-                );
-            })
+                    let painter = ui.painter_at(canvas_rect);
+                    painter.rect(
+                        tile_rect,
+                        0.,
+                        tile_col,
+                        egui::Stroke {
+                            width: 1.,
+                            color: egui::Color32::BLACK,
+                        },
+                    );
+
+                    let decor_pos = tile_rect.center();
+                    walkers_at(x, y).for_each(|(_, ty)| {
+                        painter.circle(
+                            decor_pos,
+                            DEBUG_RECT_SIZE * 0.4,
+                            egui::Color32::TRANSPARENT,
+                            egui::Stroke {
+                                width: 2.,
+                                color: egui_debug_walker_col(ty)
+                            },
+                        );
+                    })
+                });
+            }
         }
-    }
+    });
 }
 
 fn egui_debug_level_ui(
@@ -222,6 +230,7 @@ fn egui_debug_shadow_grid(
     let tile_tooltip = |x: u32, y: u32, ui: &mut egui::Ui| {
         egui::popup::show_tooltip(
             ui.ctx(),
+            ui.layer_id(),
             egui::Id::new(("shadow", x, y)),
             |ui| tile_tooltip_contents(x, y, ui),
         );
@@ -235,62 +244,69 @@ fn egui_debug_shadow_grid(
         .and_then(|id| hist.list.get(id))
         .map(|x| x.dir);
 
-    for y in 0..height {
-        for x in 0..width {
-            let pos =
-                egui::pos2(x as f32, y as f32) * DEBUG_RECT_SIZE
-                    + canvas_rect.min.to_vec2();
-            let tile_rect = egui::Rect {
-                min: pos,
-                max: pos + egui::vec2(DEBUG_RECT_SIZE, DEBUG_RECT_SIZE),
-            };
+    ui.scope(|ui| {
+        ui.set_height(canvas_rect.height());
+        ui.set_width(canvas_rect.width());
 
-            let mut ui = ui.child_ui(tile_rect, Layout::default());
-            ui.set_width(DEBUG_RECT_SIZE);
-            ui.set_height(DEBUG_RECT_SIZE);
+        for y in 0..height {
+            for x in 0..width {
+                let pos =
+                    egui::pos2(x as f32, y as f32) * DEBUG_RECT_SIZE
+                        + canvas_rect.min.to_vec2();
+                let tile_rect = egui::Rect {
+                    min: pos,
+                    max: pos + egui::vec2(DEBUG_RECT_SIZE, DEBUG_RECT_SIZE),
+                };
 
-            let pointer_inside = ui.ui_contains_pointer();
-            if pointer_inside {
-                tile_tooltip(x, y, &mut ui);
-            };
+                ui.scope(|ui| {
+                    ui.set_clip_rect(tile_rect);
+                    ui.set_width(DEBUG_RECT_SIZE);
+                    ui.set_height(DEBUG_RECT_SIZE);
 
-            let hov_in_hist = hov_tile == Some(TilePos(x, y));
+                    let pointer_inside = ui.ui_contains_pointer();
+                    if pointer_inside {
+                        tile_tooltip(x, y, ui);
+                    };
 
-            let tile_base_col = match tile_at(x, y) {
-                Ok(ty) => egui_debug_shadow_col(ty),
-                Err(_) => Color32::RED,
-            };
-            let tile_col = if pointer_inside || hov_in_hist {
-                tile_base_col
-            } else {
-                tile_base_col.gamma_multiply(0.5)
-            };
+                    let hov_in_hist = hov_tile == Some(TilePos(x, y));
 
-            let painter = ui.painter_at(canvas_rect);
-            painter.rect(
-                tile_rect,
-                0.,
-                tile_col,
-                egui::Stroke {
-                    width: 1.,
-                    color: egui::Color32::BLACK,
-                },
-            );
+                    let tile_base_col = match tile_at(x, y) {
+                        Ok(ty) => egui_debug_shadow_col(ty),
+                        Err(_) => Color32::RED,
+                    };
+                    let tile_col = if pointer_inside || hov_in_hist {
+                        tile_base_col
+                    } else {
+                        tile_base_col.gamma_multiply(0.5)
+                    };
 
-            let decor_pos = tile_rect.center();
-            // TODO, can end up below tiles
-            if hov_in_hist {
-                painter.arrow(
-                    decor_pos,
-                    hov_dir.unwrap().to_egui_vec2() * (DEBUG_RECT_SIZE * 0.7),
-                    egui::Stroke {
-                        width: 2.,
-                        color: egui::Color32::RED,
-                    },
-                );
+                    let painter = ui.painter_at(canvas_rect);
+                    painter.rect(
+                        tile_rect,
+                        0.,
+                        tile_col,
+                        egui::Stroke {
+                            width: 1.,
+                            color: egui::Color32::BLACK,
+                        },
+                    );
+
+                    let decor_pos = tile_rect.center();
+                    // TODO, can end up below tiles
+                    if hov_in_hist {
+                        painter.arrow(
+                            decor_pos,
+                            hov_dir.unwrap().to_egui_vec2() * (DEBUG_RECT_SIZE * 0.7),
+                            egui::Stroke {
+                                width: 2.,
+                                color: egui::Color32::RED,
+                            },
+                        );
+                    }
+                });
             }
         }
-    }
+    });
 }
 
 fn egui_debug_shadow_ui(
