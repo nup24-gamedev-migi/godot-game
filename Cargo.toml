@@ -3,9 +3,12 @@ name = "hunted-thief"
 version = "0.1.0"
 edition = "2021"
 
+[workspace.dependencies]
+bevy = "0.14"
+
 [dependencies]
 anyhow = "1"
-bevy = "0.14"
+bevy = { workspace = true }
 bevy_egui = "0.28"
 smallvec = "1"
 strum = "0.26.2"

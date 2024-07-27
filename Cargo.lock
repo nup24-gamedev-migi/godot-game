@@ -3541,6 +3541,9 @@ dependencies = [
 [[package]]
 name = "sokoban_kernel"
 version = "0.1.0"
+dependencies = [
+ "bevy",
+]
 
 [[package]]
 name = "spirv"
