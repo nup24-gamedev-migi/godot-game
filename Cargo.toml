@@ -10,6 +10,7 @@ bevy_egui = "0.28"
 smallvec = "1"
 strum = "0.26.2"
 strum_macros = "0.26"
+sokoban_kernel = { path = "sokoban_kernel"}
 
 [dev-dependencies]
 rand = "0.8"
