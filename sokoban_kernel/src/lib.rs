@@ -1,14 +1,14 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+mod table;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum Thing {
+    Void = 0,
+    Player = 1,
+    Box = 2,
+    Chest = 3,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub struct SokobanKernel {
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
 }
