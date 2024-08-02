@@ -115,6 +115,12 @@ fn control(
     }
 }
 
+fn update_entities(sokoban: Res<SokobanKernel>) {
+    for (x, y, thing) in sokoban.state().all_things() {
+
+    }
+}
+
 fn setup(app: &mut App) {
     app
         .insert_resource(SokobanKernel::from_map(

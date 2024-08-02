@@ -63,7 +63,7 @@ impl Direction {
 #[derive(Debug)]
 pub struct State {
     tiles: Table<Tile>,
-    things: Table<Option<Thing>>,
+    things: Table<Option<Thing>>, // NOTE: maybe replace with a HashMap
 }
 
 impl State {
@@ -73,6 +73,17 @@ impl State {
         })?;
 
         Some((px, py, pt.as_ref()?))
+    }
+
+    pub fn all_things(&self) -> impl Iterator<Item = (usize, usize, &'_ Thing)> {
+        (0..self.things.width())
+            .flat_map(|x| (0..self.things.height()).map(move |y| (x, y)))
+            .filter_map(|(x, y)| {
+                let thing = self.things.get(x, y)?;
+                let thing = thing.as_ref()?;
+
+                Some((x, y, thing))
+            })
     }
 
     pub fn treasure_exists(&self) -> bool {
