@@ -1,23 +1,24 @@
 use bevy::log::{Level, LogPlugin};
-use bundles::{TileBundle, WalkerBundle};
-use player::PlayerState;
+// use bundles::{TileBundle, WalkerBundle};
+// use player::PlayerState;
 use prelude::*;
-use tiles::TileStorage;
-use treasure_steal::TreasureState;
+use sokoban_kernel::{Direction, SokobanError, SokobanKernel, ThingKind, Tile};
+// use tiles::TileStorage;
+// use treasure_steal::TreasureState;
 
 // mod view;
 // mod logic;
 // mod utils;
-mod tiles;
-mod player;
-mod shadow;
+// mod tiles;
+// mod player;
+// mod shadow;
 mod prelude;
-mod collision;
-mod bundles;
-mod game_state;
-mod debugging;
-mod void_fall;
-mod treasure_steal;
+// mod collision;
+// mod bundles;
+// mod game_state;
+// mod debugging;
+// mod void_fall;
+// mod treasure_steal;
 
 fn main() {
     let mut app = App::new();
@@ -38,75 +39,106 @@ fn main() {
 }
 
 fn setup_sys(mut cmds: Commands) {
-    use tiles::*;
+//     use tiles::*;
 
-    spawn_tiles(
-        &mut cmds,
-        10,
-        10,
-        |x, y| TileBundle::new(
-            if x == 5 && y == 5 {
-                TileType::Treasure
-            } else if y < 9 {
-                TileType::Floor
-            } else {
-                TileType::Void
-            }
-        )
-    );
+//     spawn_tiles(
+//         &mut cmds,
+//         10,
+//         10,
+//         |x, y| TileBundle::new(
+//             if x == 5 && y == 5 {
+//                 TileType::Treasure
+//             } else if y < 9 {
+//                 TileType::Floor
+//             } else {
+//                 TileType::Void
+//             }
+//         )
+//     );
 
-    cmds
-        .insert_resource(game_state::InGameState::new());
-    cmds
-        .insert_resource(shadow::PlayerMoveHistory::new());
-    cmds
-        .spawn(WalkerBundle::new(
-            TilePos(0, 0),
-            WalkerType::Player
-        ))
-        .insert(PlayerState::new());
+//     cmds
+//         .insert_resource(game_state::InGameState::new());
+//     cmds
+//         .insert_resource(shadow::PlayerMoveHistory::new());
+//     cmds
+//         .spawn(WalkerBundle::new(
+//             TilePos(0, 0),
+//             WalkerType::Player
+//         ))
+//         .insert(PlayerState::new());
 
-    cmds
-        .spawn(WalkerBundle::new(
-            TilePos(1, 0),
-            WalkerType::Box
-        ));
+//     cmds
+//         .spawn(WalkerBundle::new(
+//             TilePos(1, 0),
+//             WalkerType::Box
+//         ));
 
-    cmds
-        .spawn(WalkerBundle::new(
-            TilePos(2, 2),
-            WalkerType::Box
-        ));
+//     cmds
+//         .spawn(WalkerBundle::new(
+//             TilePos(2, 2),
+//             WalkerType::Box
+//         ));
 
-    cmds
-        .spawn(WalkerBundle::new(
-            TilePos(3, 3),
-            WalkerType::Null
-        ));
+//     cmds
+//         .spawn(WalkerBundle::new(
+//             TilePos(3, 3),
+//             WalkerType::Null
+//         ));
 }
 
-fn spawn_treasure(
-    tile_st_q: Query<&TileStorage>,
-    mut cmds: Commands,
+fn control(
+    mut kernel: ResMut<SokobanKernel>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
 ) {
-    let Ok(tile_st) = tile_st_q.get_single() else { return; };
-    let tile = tile_st.get_tile_at_pos(5, 5).unwrap();
+    let mut caller = || {
+        if keyboard_input.just_pressed(KeyCode::KeyA) {
+            kernel.move_player(Direction::Left)?;
+        }
 
-    cmds.entity(tile).insert(TreasureState(true));
+        if keyboard_input.just_pressed(KeyCode::KeyW) {
+            kernel.move_player(Direction::Up)?;
+        }
+
+        if keyboard_input.just_pressed(KeyCode::KeyD) {
+            kernel.move_player(Direction::Right)?;
+        }
+
+        if keyboard_input.just_pressed(KeyCode::KeyS) {
+            kernel.move_player(Direction::Down)?;
+        }
+
+        Ok::<_, SokobanError>(())
+    };
+
+    if let Err(e) = caller() {
+        error!("{e:?}");
+    }
 }
 
 fn setup(app: &mut App) {
     app
-        .add_systems(PostUpdate, player::player_reset)
-        .add_systems(Update, debugging::egui_debug_level)
-        .add_systems(Startup, setup_sys)
-        .add_systems(Startup, spawn_treasure.after(setup_sys))
-        .add_systems(PreUpdate, player::player_input)
-        .add_systems(PreUpdate, game_state::react_to_input.after(player::player_input))
-        .add_systems(Update, collision::solve_collisions)
-        .add_systems(Update, void_fall::handle_void_fall.after(collision::solve_collisions))
-        .add_systems(Update, treasure_steal::treasure_stealing.after(void_fall::handle_void_fall))
-        .add_systems(Update, shadow::process_player_move.after(treasure_steal::treasure_stealing))
-        .add_systems(Update, shadow::do_shadow_walk.after(shadow::process_player_move))
-        .add_systems(Update, debugging::egui_debug_shadow.after(shadow::do_shadow_walk));
+        .insert_resource(SokobanKernel::from_map(
+            10,
+            10,
+            |_, _| Tile::Floor,
+            |x, y| {
+                if x == 0 && y == 0 { return Some(ThingKind::Player); }
+                if x == 3 && y == 3 { return Some(ThingKind::Box); }
+
+                None
+            },
+        ))
+        .add_systems(Update, control);
+        // .add_systems(PostUpdate, player::player_reset)
+        // .add_systems(Update, debugging::egui_debug_level)
+        // .add_systems(Startup, setup_sys)
+        // .add_systems(Startup, spawn_treasure.after(setup_sys))
+        // .add_systems(PreUpdate, player::player_input)
+        // .add_systems(PreUpdate, game_state::react_to_input.after(player::player_input))
+        // .add_systems(Update, collision::solve_collisions)
+        // .add_systems(Update, void_fall::handle_void_fall.after(collision::solve_collisions))
+        // .add_systems(Update, treasure_steal::treasure_stealing.after(void_fall::handle_void_fall))
+        // .add_systems(Update, shadow::process_player_move.after(treasure_steal::treasure_stealing))
+        // .add_systems(Update, shadow::do_shadow_walk.after(shadow::process_player_move))
+        // .add_systems(Update, debugging::egui_debug_shadow.after(shadow::do_shadow_walk));
 }

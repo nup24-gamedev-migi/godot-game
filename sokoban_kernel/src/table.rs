@@ -62,6 +62,38 @@ impl<T> Table<T> {
             mem,
         }
     }
+
+    pub fn resize_with<F>(&mut self, width: usize, height: usize, f: F)
+    where
+        F: FnMut() -> T
+    {
+        self.mem.resize_with(width * height, f);
+        self.width = width;
+        self.height = height;
+    }
+
+    pub fn find<F>(&self, mut f: F) -> Option<(usize, usize, &T)>
+    where
+        F: FnMut(&T) -> bool,
+    {
+        for x in 0..self.width() {
+            for y in 0..self.height() {
+                let v = self.get(x, y).unwrap();
+                if f(v) {
+                    return Some((x, y, v));
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn find_pos<F>(&self, mut f: F) -> Option<(usize, usize)>
+    where
+        F: FnMut(&T) -> bool,
+    {
+        self.find(f).map(|(x, y, _)| (x, y))
+    }
 }
 
 impl<T: Default> Table<T> {
@@ -69,13 +101,17 @@ impl<T: Default> Table<T> {
         Self::from_raw_parts(
             width,
             height,
-            (0..width*height).map(|_| T::default())
+            (0..width*height).map(|_| Default::default())
                 .collect()
         )
     }
 
     pub fn reset(&mut self) {
         self.fill_with(Default::default)
+    }
+
+    pub fn resize(&mut self, width: usize, height: usize) {
+        self.resize_with(width, height, Default::default)
     }
 }
 
@@ -91,6 +127,9 @@ impl<T: Clone> Table<T> {
     pub fn fill(&mut self, v: T) {
         self.fill_with(|| v.clone())
     }
+}
+
+impl<T> Table<T> {
 }
 
 #[cfg(test)]
@@ -327,5 +366,68 @@ mod tests {
         test_bad_sets_impl::<bool>(&mut rng);
         test_bad_sets_impl::<u8>(&mut rng);
         test_bad_sets_impl::<u32>(&mut rng);
+    }
+
+    fn test_find_impl<T>(rng: &mut ThreadRng)
+    where
+        T: Eq + Debug + Copy + Default,
+        Standard: Distribution<T>,
+    {
+        for (width, height) in TABLE_SIZES {
+            if width == 0 || height == 0 {
+                continue;
+            }
+
+            for _ in 0..CREATION_ROUNDS {
+                let mut table: Table<_> = Table::new_filled(width, height);
+                let width = table.width();
+                let height = table.height();
+                let (x, y) = (rng.gen_range(0..width), rng.gen_range(0..height));
+                let v = rng.r#gen();
+                if v == Default::default() {
+                    continue;
+                }
+
+                table.set(x, y, v);
+                assert_eq!(
+                    table.find(|x| *x == v).map(|(x, y, _)| (x, y)),
+                    Some((x, y))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_find() {
+        let mut rng = ThreadRng::default();
+        test_find_impl::<i32>(&mut rng);
+        test_find_impl::<bool>(&mut rng);
+        test_find_impl::<u8>(&mut rng);
+        test_find_impl::<u32>(&mut rng);
+    }
+
+    fn test_resize_impl<T>(rng: &mut ThreadRng)
+    where
+        T: Default
+    {
+        for (width, height) in TABLE_SIZES {
+            let mut table = Table::<T>::new_filled(width, height);
+            for _ in 0..CREATION_ROUNDS*MODIFICATION_ROUNDS {
+                let (nwidth, nheight) = *TABLE_SIZES.choose(rng).unwrap();
+
+                table.resize(nwidth, nheight);
+                assert_eq!(table.width(), nwidth);
+                assert_eq!(table.height(), nheight);
+            }
+        }
+    }
+
+    #[test]
+    fn test_resize() {
+        let mut rng = ThreadRng::default();
+        test_resize_impl::<i32>(&mut rng);
+        test_resize_impl::<bool>(&mut rng);
+        test_resize_impl::<u8>(&mut rng);
+        test_resize_impl::<u32>(&mut rng);
     }
 }
