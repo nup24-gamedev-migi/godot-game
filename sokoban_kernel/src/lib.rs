@@ -2,7 +2,7 @@ mod table;
 
 use std::collections::VecDeque;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashMap};
 
 use table::*;
 
@@ -63,33 +63,21 @@ impl Direction {
 #[derive(Debug)]
 pub struct State {
     tiles: Table<Tile>,
-    things: Table<Option<Thing>>, // NOTE: maybe replace with a HashMap
+    things: HashMap<(usize, usize), Thing>, // NOTE: maybe replace with a HashMap
 }
 
 impl State {
-    pub fn player_thing(&self) -> Option<(usize, usize, &Thing)> {
-        let (px, py, pt) = self.things.find(|x| {
-            x.map(|t| t.kind) == Some(ThingKind::Player)
-        })?;
-
-        Some((px, py, pt.as_ref()?))
+    pub fn all_things(&self) -> impl Iterator<Item = (usize, usize, &'_ Thing)> {
+        self.things.iter()
+            .map(|((x, y), t)| (*x, *y, t))
     }
 
-    pub fn all_things(&self) -> impl Iterator<Item = (usize, usize, &'_ Thing)> {
-        (0..self.things.width())
-            .flat_map(|x| (0..self.things.height()).map(move |y| (x, y)))
-            .filter_map(|(x, y)| {
-                let thing = self.things.get(x, y)?;
-                let thing = thing.as_ref()?;
-
-                Some((x, y, thing))
-            })
+    pub fn player_thing(&self) -> Option<(usize, usize, &Thing)> {
+        self.all_things().find(|(_, _, t)| t.kind == ThingKind::Player)
     }
 
     pub fn treasure_exists(&self) -> bool {
-        self.things.find(|x| {
-            x.map(|t| t.kind) == Some(ThingKind::Chest)
-        }).is_some()
+        self.all_things().find(|(_, _, t)| t.kind == ThingKind::Chest).is_some()
     }
 }
 
@@ -116,7 +104,7 @@ impl SokobanKernel {
         Self {
             state: State {
                 tiles: Table::new(),
-                things: Table::new(),
+                things: HashMap::new(),
             },
             buffers: Buffers {
                 push_log: Vec::new(),
@@ -134,7 +122,7 @@ impl SokobanKernel {
     ) -> Self
     where
         TileMap: FnMut(usize, usize) -> Tile,
-        Things: FnMut(usize, usize) -> Option<ThingKind>,
+        Things: IntoIterator<Item = (usize, usize, Thing)>,
     {
         let mut me = Self::new();
         me.load_map(width, height, tiles, things);
@@ -147,28 +135,24 @@ impl SokobanKernel {
         width: usize,
         height: usize,
         mut tiles: TileMap,
-        mut things: Things,
+        things: Things,
     )
     where
         TileMap: FnMut(usize, usize) -> Tile,
-        Things: FnMut(usize, usize) -> Option<ThingKind>,
+        Things: IntoIterator<Item = (usize, usize, Thing)>,
     {
-        let mut thing_idx = 0;
-
         self.state.tiles.resize_with(width, height, || Tile::Void);
-        self.state.things.resize(width, height);
+        self.state.things.clear();
 
         for x in 0..width {
             for y in 0..height {
                 self.state.tiles.set(x, y, tiles(x, y));
-
-                if let Some(kind) = things(x, y) {
-                    self.state.things.set(x, y, Some(Thing { kind, id: thing_idx }));
-
-                    thing_idx += 1;
-                }
             }
         }
+
+        self.state.things.extend(
+            things.into_iter().map(|(x, y, t)| ((x, y), t))
+        );
 
         info!("{:?}", self.state.tiles);
         info!("{:?}", self.state.things);
@@ -214,23 +198,23 @@ impl SokobanKernel {
             self.buffers.push_log.push((x, y, dir, nx, ny, pusher));
 
             /* Check if we need to push someone */
-            let entry = self.state.things.get(nx, ny).unwrap();
-            let Some(occupier) = *entry
+            let Some(occupier) = self.state.things.get(&(nx, ny))
                 else { continue; };
 
             /* Add the occupier to the queue */
-            self.buffers.push_queue.push_back((nx, ny, dir, occupier));
+            self.buffers.push_queue.push_back((nx, ny, dir, *occupier));
         }
 
         /* Apply changes */
         self.buffers.push_log.iter()
             .for_each(|(x, y, _, _, _, _)| {
-                self.state.things.set(*x, *y, None);
+                self.state.things.remove(&(*x, *y));
             });
-        self.buffers.push_log.iter()
-            .for_each(|(_, _, _, nx, ny, pusher)| {
-                self.state.things.set(*nx, *ny, Some(*pusher));
-            });
+
+        self.state.things.extend(
+            self.buffers.push_log.iter()
+                .map(|(_, _, _, nx, ny, pusher)| ((*nx, *ny), *pusher))
+        );
 
         info!("{:?}", self.state.tiles);
         info!("{:?}", self.state.things);

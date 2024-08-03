@@ -2,7 +2,7 @@ use bevy::log::{Level, LogPlugin};
 // use bundles::{TileBundle, WalkerBundle};
 // use player::PlayerState;
 use prelude::*;
-use sokoban_kernel::{Direction, SokobanError, SokobanKernel, ThingKind, Tile};
+use sokoban_kernel::{Direction, SokobanError, SokobanKernel, Thing, ThingKind, Tile};
 // use tiles::TileStorage;
 // use treasure_steal::TreasureState;
 
@@ -38,7 +38,30 @@ fn main() {
     app.run();
 }
 
-fn setup_sys(mut cmds: Commands) {
+fn setup_sys(mut cmds: Commands, server: Res<AssetServer>) {
+    cmds.spawn((
+        SokobanThing(0),
+        SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(32.0, 32.0)),
+                ..default()
+            },
+            texture: server.load("char.png"),
+            ..default()
+        }
+    ));
+    cmds.spawn((
+        SokobanThing(1),
+        SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(32.0, 32.0)),
+                ..default()
+            },
+            texture: server.load("box.png"),
+            ..default()
+        }
+    ));
+    cmds.spawn(Camera2dBundle::default());
 //     use tiles::*;
 
 //     spawn_tiles(
@@ -115,9 +138,23 @@ fn control(
     }
 }
 
-fn update_entities(sokoban: Res<SokobanKernel>) {
-    for (x, y, thing) in sokoban.state().all_things() {
+#[derive(Clone, Copy, Debug, Component)]
+struct SokobanThing(usize);
 
+fn update_entities(
+    sokoban: Res<SokobanKernel>,
+    mut things: Query<(&mut Transform, &SokobanThing)>,
+) {
+    for (x, y, thing) in sokoban.state().all_things() {
+        for (mut tf, thing_handle) in things.iter_mut() {
+            if thing.id != thing_handle.0 { continue; }
+
+            tf.translation = Vec3::new(
+                32.0 * (x as f32),
+                -32.0 * (y as f32),
+                0.0,
+            );
+        }
     }
 }
 
@@ -127,14 +164,14 @@ fn setup(app: &mut App) {
             10,
             10,
             |_, _| Tile::Floor,
-            |x, y| {
-                if x == 0 && y == 0 { return Some(ThingKind::Player); }
-                if x == 3 && y == 3 { return Some(ThingKind::Box); }
-
-                None
-            },
+            [
+                (0, 0, Thing { kind: ThingKind::Player, id: 0 }),
+                (3, 3, Thing { kind: ThingKind::Box, id: 1 }),
+            ],
         ))
-        .add_systems(Update, control);
+        .add_systems(Update, control)
+        .add_systems(Update, update_entities)
+        .add_systems(Startup, setup_sys);
         // .add_systems(PostUpdate, player::player_reset)
         // .add_systems(Update, debugging::egui_debug_level)
         // .add_systems(Startup, setup_sys)
