@@ -17,18 +17,18 @@ pub enum SokobanError {
     },
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 #[repr(u8)]
 pub enum ThingKind {
     Player = 0,
+    #[default]
     Box = 1,
     Chest = 2,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Thing {
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+pub struct ThingEntry {
     pub kind: ThingKind,
-    pub id: usize,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -63,28 +63,39 @@ impl Direction {
 #[derive(Debug)]
 pub struct State {
     tiles: Table<Tile>,
-    things: HashMap<(usize, usize), Thing>,
+    things: HashMap<(usize, usize), usize>,
+    thing_table: HashMap<usize, ThingEntry>,
 }
 
 impl State {
-    pub fn all_things(&self) -> impl Iterator<Item = (usize, usize, &'_ Thing)> {
+    pub fn all_things(&self) -> impl Iterator<Item = (usize, usize, usize)> + '_ {
         self.things.iter()
-            .map(|((x, y), t)| (*x, *y, t))
+            .map(|((x, y), t)| (*x, *y, *t))
     }
 
-    pub fn player_thing(&self) -> Option<(usize, usize, &Thing)> {
-        self.all_things().find(|(_, _, t)| t.kind == ThingKind::Player)
+    pub fn all_things_with_metadata(&self) -> impl Iterator<Item = (usize, usize, usize, &'_ ThingEntry)> + '_ {
+        self.all_things()
+            .map(|(x, y, idx)| (x, y, idx, &self.thing_table[&idx]))
+    }
+
+    pub fn player_thing(&self) -> Option<(usize, usize, usize, &'_ ThingEntry)> {
+        self.all_things_with_metadata().find(|(_, _, _, t)| {
+            t.kind == ThingKind::Player
+        })
     }
 
     pub fn treasure_exists(&self) -> bool {
-        self.all_things().find(|(_, _, t)| t.kind == ThingKind::Chest).is_some()
+        self.all_things_with_metadata().find(|(_, _, _, t)| {
+            t.kind == ThingKind::Chest
+        })
+        .is_some()
     }
 }
 
 #[derive(Debug)]
 struct Buffers {
-    push_log: Vec<(usize, usize, Direction, usize, usize, Thing)>,
-    push_queue: VecDeque<(usize, usize, Direction, Thing)>,
+    push_log: Vec<(usize, usize, Direction, usize, usize, usize)>,
+    push_queue: VecDeque<(usize, usize, Direction, usize)>,
     push_table: Table<Option<Direction>>,
 }
 
@@ -105,6 +116,7 @@ impl SokobanKernel {
             state: State {
                 tiles: Table::new(),
                 things: HashMap::new(),
+                thing_table: HashMap::new(),
             },
             buffers: Buffers {
                 push_log: Vec::new(),
@@ -122,7 +134,7 @@ impl SokobanKernel {
     ) -> Self
     where
         TileMap: FnMut(usize, usize) -> Tile,
-        Things: IntoIterator<Item = (usize, usize, Thing)>,
+        Things: IntoIterator<Item = (usize, usize, usize, ThingEntry)>,
     {
         let mut me = Self::new();
         me.load_map(width, height, tiles, things);
@@ -139,10 +151,11 @@ impl SokobanKernel {
     )
     where
         TileMap: FnMut(usize, usize) -> Tile,
-        Things: IntoIterator<Item = (usize, usize, Thing)>,
+        Things: IntoIterator<Item = (usize, usize, usize, ThingEntry)>,
     {
         self.state.tiles.resize_with(width, height, || Tile::Void);
         self.state.things.clear();
+        self.state.thing_table.clear();
 
         for x in 0..width {
             for y in 0..height {
@@ -150,12 +163,10 @@ impl SokobanKernel {
             }
         }
 
-        self.state.things.extend(
-            things.into_iter().map(|(x, y, t)| ((x, y), t))
-        );
-
-        info!("{:?}", self.state.tiles);
-        info!("{:?}", self.state.things);
+        for (x, y, idx, entry) in things {
+            self.state.things.insert((x, y), idx);
+            self.state.thing_table.insert(idx, entry);
+        }
     }
 
     pub fn state(&self) -> &State {
@@ -163,9 +174,8 @@ impl SokobanKernel {
     }
 
     pub fn move_player(&mut self, dir: Direction) -> Result<(), SokobanError> {
-        let (px, py, pt) = self.state().player_thing()
+        let (px, py, pt, _) = self.state().player_thing()
             .ok_or(SokobanError::NoPlayer)?;
-        let pt = *pt;
 
         // TODO: if this code survives -- use push_log only
         self.buffers.push_table.resize(
@@ -215,9 +225,6 @@ impl SokobanKernel {
             self.buffers.push_log.iter()
                 .map(|(_, _, _, nx, ny, pusher)| ((*nx, *ny), *pusher))
         );
-
-        info!("{:?}", self.state.tiles);
-        info!("{:?}", self.state.things);
 
         Ok(())
     }

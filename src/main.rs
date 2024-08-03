@@ -2,7 +2,7 @@ use bevy::log::{Level, LogPlugin};
 // use bundles::{TileBundle, WalkerBundle};
 // use player::PlayerState;
 use prelude::*;
-use sokoban_kernel::{Direction, SokobanError, SokobanKernel, Thing, ThingKind, Tile};
+use sokoban_kernel::{Direction, SokobanError, SokobanKernel, ThingEntry, ThingKind, Tile};
 // use tiles::TileStorage;
 // use treasure_steal::TreasureState;
 
@@ -147,7 +147,7 @@ fn update_entities(
 ) {
     for (x, y, thing) in sokoban.state().all_things() {
         for (mut tf, thing_handle) in things.iter_mut() {
-            if thing.id != thing_handle.0 { continue; }
+            if thing != thing_handle.0 { continue; }
 
             tf.translation = Vec3::new(
                 32.0 * (x as f32),
@@ -165,8 +165,8 @@ fn setup(app: &mut App) {
             10,
             |_, _| Tile::Floor,
             [
-                (0, 0, Thing { kind: ThingKind::Player, id: 0 }),
-                (3, 3, Thing { kind: ThingKind::Box, id: 1 }),
+                (0, 0, 0, ThingEntry { kind: ThingKind::Player }),
+                (3, 3, 1, ThingEntry { kind: ThingKind::Box }),
             ],
         ))
         .add_systems(Update, control)
