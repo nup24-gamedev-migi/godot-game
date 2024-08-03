@@ -62,6 +62,29 @@ fn setup_sys(mut cmds: Commands, server: Res<AssetServer>) {
         }
     ));
     cmds.spawn(Camera2dBundle::default());
+
+
+    let floor = server.load("grass1.png");
+
+    for x in 0..10 {
+        for y in 0..10 {
+            cmds.spawn((
+                SpriteBundle {
+                    transform: Transform::from_translation(Vec3::new(
+                        (x as f32) * 32.0,
+                        (y as f32) * -32.0,
+                        0.0
+                    )),
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(32.0, 32.0)),
+                        ..default()
+                    },
+                    texture: floor.clone(),
+                    ..default()
+                },
+            ));
+        }
+    }
 //     use tiles::*;
 
 //     spawn_tiles(
@@ -152,7 +175,7 @@ fn update_entities(
             tf.translation = Vec3::new(
                 32.0 * (x as f32),
                 -32.0 * (y as f32),
-                0.0,
+                1.0,
             );
         }
     }
