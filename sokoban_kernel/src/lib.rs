@@ -63,7 +63,7 @@ impl Direction {
 #[derive(Debug)]
 pub struct State {
     tiles: Table<Tile>,
-    things: HashMap<(usize, usize), Thing>, // NOTE: maybe replace with a HashMap
+    things: HashMap<(usize, usize), Thing>,
 }
 
 impl State {
