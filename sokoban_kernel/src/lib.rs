@@ -70,6 +70,7 @@ pub struct State {
     tiles: Table<Tile>,
     things: HashMap<(usize, usize), usize>,
     thing_table: HashMap<usize, ThingEntry>,
+    player_hist: Vec<(usize, usize, usize, usize)>,
 }
 
 impl State {
@@ -134,6 +135,7 @@ impl SokobanKernel {
                 tiles: Table::new(),
                 things: HashMap::new(),
                 thing_table: HashMap::new(),
+                player_hist: Vec::new(),
             },
             buffers: Buffers {
                 push_log: Vec::new(),
@@ -190,10 +192,11 @@ impl SokobanKernel {
         &self.state
     }
 
+    // FIXME: rollback isn't really possible here
     pub fn move_player(&mut self, dir: Direction) -> Result<(), SokobanError> {
         let (px, py, pt, _) = self.state().player_thing()
             .ok_or(SokobanError::NoPlayer)?;
-
+        let (npx, npy) = dir.apply(px, py);
 
         self.solve_collisions((px, py, dir, pt))?;
 
@@ -212,6 +215,9 @@ impl SokobanKernel {
                 _ => (),
             }
         }
+
+        /* Everything has been accepted. We can record the player move */
+        self.state.player_hist.push((px, py, npx, npy));
 
         Ok(())
     }
