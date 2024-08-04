@@ -194,6 +194,14 @@ impl SokobanKernel {
         let (px, py, pt, _) = self.state().player_thing()
             .ok_or(SokobanError::NoPlayer)?;
 
+
+        /* The algorithm */
+        self.solve_collisions((px, py, dir, pt))?;
+
+        Ok(())
+    }
+
+    fn solve_collisions(&mut self, first_push: (usize, usize, Direction, usize)) -> Result<(), SokobanError> {
         // TODO: if this code survives -- use push_log only
         self.buffers.push_table.resize(
             self.state.tiles.width(),
@@ -203,8 +211,7 @@ impl SokobanKernel {
         self.buffers.push_queue.clear();
         self.buffers.push_table.reset();
 
-        /* The algorithm */
-        self.buffers.push_queue.push_back((px, py, dir, pt));
+        self.buffers.push_queue.push_back(first_push);
 
         // Loop invariant: no collision errors
         // Loop exit guarantee: no unresolved collisions
