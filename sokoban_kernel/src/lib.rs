@@ -15,6 +15,11 @@ pub enum SokobanError {
         y: usize,
         dir: Direction,
     },
+    BumpedIntoWall {
+        x: usize,
+        y: usize,
+        dir: Direction,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
@@ -210,6 +215,11 @@ impl SokobanKernel {
             /* Range check */
             let Some(entry) = self.buffers.push_table.get(nx, ny)
                 else { return Err(SokobanError::MovedOutOfRange { x, y, dir }); };
+
+            /* Wall check */
+            if self.state.tiles.get(nx, ny).map(|x| *x) == Some(Tile::Wall) {
+                return Err(SokobanError::BumpedIntoWall { x, y, dir });
+            }
 
             /* Ah dang it, we looped */
             if entry.is_some() {
