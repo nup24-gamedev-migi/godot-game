@@ -195,8 +195,23 @@ impl SokobanKernel {
             .ok_or(SokobanError::NoPlayer)?;
 
 
-        /* The algorithm */
         self.solve_collisions((px, py, dir, pt))?;
+
+        let to_fall = self.state().all_things()
+            .filter(|(x, y, _)| *self.state().tiles.get(*x, *y).unwrap() == Tile::Void)
+            .collect::<Vec<_>>();
+
+        for (x, y, t) in to_fall {
+            self.state.things.remove(&(x, y));
+
+            match self.state.thing_table[&t].kind {
+                ThingKind::Box => {
+                    info!("Box {t:} dropped at ({x:}, {y:})");
+                    self.state.tiles.set(x, y, Tile::Floor)
+                },
+                _ => (),
+            }
+        }
 
         Ok(())
     }
