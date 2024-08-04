@@ -84,6 +84,7 @@ fn setup_sys(
         };
 
         cmds.spawn((
+            SokobanTile(x, y, tile),
             SpriteBundle {
                 transform: Transform::from_translation(Vec3::new(
                     (x as f32) * 32.0,
@@ -176,14 +177,37 @@ fn control(
 }
 
 #[derive(Clone, Copy, Debug, Component)]
+struct SokobanTile(usize, usize, Tile);
+
+#[derive(Clone, Copy, Debug, Component)]
 struct SokobanThing(usize);
 
 fn update_entities(
+    server: Res<AssetServer>,
     mut existing_things: Local<HashSet<usize>>,
     sokoban: Res<SokobanKernel>,
     mut things: Query<(Entity, &mut Transform, &SokobanThing)>,
+    mut tiles: Query<(&mut SokobanTile, &mut Handle<Image>)>,
     mut commands: Commands,
 ) {
+
+    for (mut tile, mut spr) in tiles.iter_mut() {
+        let in_engine = sokoban.state().tile_at(tile.0, tile.1).unwrap();
+
+        if tile.2 == in_engine {
+            continue;
+        }
+
+        tile.2 = in_engine;
+        let texture = match tile.2 {
+            Tile::Void => default(),
+            Tile::Wall => server.load("boxy.png"),
+            Tile::Floor => server.load("grass1.png"),
+            Tile::Exit => server.load("trapdoor.png"),
+        };
+        *spr = texture;
+    }
+
     existing_things.clear();
 
     for (_, _, thing) in sokoban.state().all_things() {
