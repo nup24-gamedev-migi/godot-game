@@ -110,13 +110,6 @@ impl State {
     }
 }
 
-#[derive(Debug)]
-struct Buffers {
-    push_log: Vec<(usize, usize, Direction, usize, usize, usize)>,
-    push_queue: VecDeque<(usize, usize, Direction, usize)>,
-    push_table: Table<Option<Direction>>,
-}
-
 /*
     Invariants:
     * At most one player
@@ -125,7 +118,6 @@ struct Buffers {
 #[derive(Resource, Debug)]
 pub struct SokobanKernel {
    state: State,
-   buffers: Buffers,
 }
 
 impl SokobanKernel {
@@ -136,11 +128,6 @@ impl SokobanKernel {
                 things: HashMap::new(),
                 thing_table: HashMap::new(),
                 player_hist: Vec::new(),
-            },
-            buffers: Buffers {
-                push_log: Vec::new(),
-                push_queue: VecDeque::new(),
-                push_table: Table::new(),
             },
         }
     }
@@ -223,25 +210,23 @@ impl SokobanKernel {
     }
 
     fn solve_collisions(&mut self, first_push: (usize, usize, Direction, usize)) -> Result<(), SokobanError> {
-        // TODO: if this code survives -- use push_log only
-        self.buffers.push_table.resize(
+        let mut push_log = Vec::new();
+        let mut push_queue = VecDeque::<(usize, usize, Direction, usize)>::new();
+        let mut push_table = Table::<Option<Direction>>::new_filled(
             self.state.tiles.width(),
-            self.state.tiles.height(),
+            self.state.tiles.height()
         );
-        self.buffers.push_log.clear();
-        self.buffers.push_queue.clear();
-        self.buffers.push_table.reset();
 
-        self.buffers.push_queue.push_back(first_push);
+        push_queue.push_back(first_push);
 
         // Loop invariant: no collision errors
         // Loop exit guarantee: no unresolved collisions
-        while let Some((x, y, dir, pusher)) = self.buffers.push_queue.pop_front() {
-            self.buffers.push_table.set(x, y, Some(dir));
+        while let Some((x, y, dir, pusher)) = push_queue.pop_front() {
+            push_table.set(x, y, Some(dir));
             let (nx, ny) = dir.apply(x, y);
 
             /* Range check */
-            let Some(entry) = self.buffers.push_table.get(nx, ny)
+            let Some(entry) = push_table.get(nx, ny)
                 else { return Err(SokobanError::MovedOutOfRange { x, y, dir }); };
 
             /* Wall check */
@@ -255,24 +240,24 @@ impl SokobanKernel {
             }
 
             /* We reached the point where the push is log-worthy */
-            self.buffers.push_log.push((x, y, dir, nx, ny, pusher));
+            push_log.push((x, y, dir, nx, ny, pusher));
 
             /* Check if we need to push someone */
             let Some(occupier) = self.state.things.get(&(nx, ny))
                 else { continue; };
 
             /* Add the occupier to the queue */
-            self.buffers.push_queue.push_back((nx, ny, dir, *occupier));
+            push_queue.push_back((nx, ny, dir, *occupier));
         }
 
         /* Apply changes */
-        self.buffers.push_log.iter()
+        push_log.iter()
             .for_each(|(x, y, _, _, _, _)| {
                 self.state.things.remove(&(*x, *y));
             });
 
         self.state.things.extend(
-            self.buffers.push_log.iter()
+            push_log.iter()
                 .map(|(_, _, _, nx, ny, pusher)| ((*nx, *ny), *pusher))
         );
 
