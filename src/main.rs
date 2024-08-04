@@ -1,4 +1,4 @@
-use bevy::log::{Level, LogPlugin};
+use bevy::{log::{Level, LogPlugin}, transform::commands, utils::HashSet};
 // use bundles::{TileBundle, WalkerBundle};
 // use player::PlayerState;
 use prelude::*;
@@ -179,11 +179,27 @@ fn control(
 struct SokobanThing(usize);
 
 fn update_entities(
+    mut existing_things: Local<HashSet<usize>>,
     sokoban: Res<SokobanKernel>,
-    mut things: Query<(&mut Transform, &SokobanThing)>,
+    mut things: Query<(Entity, &mut Transform, &SokobanThing)>,
+    mut commands: Commands,
 ) {
+    existing_things.clear();
+
+    for (_, _, thing) in sokoban.state().all_things() {
+        existing_things.insert(thing);
+    }
+
+    for (e, _, thing) in things.iter() {
+        if existing_things.contains(&thing.0) {
+            continue;
+        }
+
+        commands.entity(e).despawn_recursive();
+    }
+
     for (x, y, thing) in sokoban.state().all_things() {
-        for (mut tf, thing_handle) in things.iter_mut() {
+        for (_, mut tf, thing_handle) in things.iter_mut() {
             if thing != thing_handle.0 { continue; }
 
             tf.translation = Vec3::new(
