@@ -38,52 +38,66 @@ fn main() {
     app.run();
 }
 
-fn setup_sys(mut cmds: Commands, server: Res<AssetServer>) {
-    cmds.spawn((
-        SokobanThing(0),
-        SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(32.0, 32.0)),
-                ..default()
-            },
-            texture: server.load("char.png"),
-            ..default()
-        }
-    ));
-    cmds.spawn((
-        SokobanThing(1),
-        SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(32.0, 32.0)),
-                ..default()
-            },
-            texture: server.load("box.png"),
-            ..default()
-        }
-    ));
+fn setup_sys(
+    mut cmds: Commands,
+    server: Res<AssetServer>,
+    sokoban: Res<SokobanKernel>,
+) {
+
     cmds.spawn(Camera2dBundle::default());
 
+    for (x, y, id, thing) in sokoban.state().all_things_with_metadata() {
+        let texture = match thing.kind {
+            ThingKind::Player => server.load("char.png"),
+            ThingKind::Box => server.load("box.png"),
+            ThingKind::Chest => server.load("chest.png"),
+        };
 
-    let floor = server.load("grass1.png");
-
-    for x in 0..10 {
-        for y in 0..10 {
-            cmds.spawn((
-                SpriteBundle {
-                    transform: Transform::from_translation(Vec3::new(
-                        (x as f32) * 32.0,
-                        (y as f32) * -32.0,
-                        0.0
-                    )),
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(32.0, 32.0)),
-                        ..default()
-                    },
-                    texture: floor.clone(),
+        cmds.spawn((
+            SokobanThing(id),
+            SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(32.0, 32.0)),
                     ..default()
                 },
-            ));
-        }
+                transform: Transform::from_translation(Vec3::new(
+                    (x as f32) * 32.0,
+                    (y as f32) * -32.0,
+                    0.0
+                )),
+                texture,
+                ..default()
+            }
+        ));
+    }
+
+    let tile_iter = (0..sokoban.state().field_width())
+        .flat_map(|y| (0..sokoban.state().field_height()).map(move |x| (x, y)))
+        .map(|(x, y)| (x, y, sokoban.state().tile_at(x, y).unwrap()));
+
+    for (x, y, tile) in tile_iter {
+        let texture = match tile {
+            Tile::Void => default(),
+            Tile::Wall => server.load("boxy.png"),
+            Tile::Floor => server.load("grass1.png"),
+            Tile::Exit => server.load("trapdoor.png"),
+        };
+
+        cmds.spawn((
+            SpriteBundle {
+                transform: Transform::from_translation(Vec3::new(
+                    (x as f32) * 32.0,
+                    (y as f32) * -32.0,
+                    0.0
+                )),
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(32.0, 32.0)),
+                    ..default()
+                },
+                texture,
+                ..default()
+            },
+        ));
     }
 //     use tiles::*;
 
@@ -186,7 +200,21 @@ fn setup(app: &mut App) {
         .insert_resource(SokobanKernel::from_map(
             10,
             10,
-            |_, _| Tile::Floor,
+            |x, y| {
+                if x == 0 && y == 0 {
+                    return Tile::Exit;
+                }
+
+                if y > 8 {
+                    return Tile::Void;
+                }
+
+                if x >= 9 {
+                    return Tile::Wall;
+                }
+
+                Tile::Floor
+            },
             [
                 (0, 0, 0, ThingEntry { kind: ThingKind::Player }),
                 (3, 3, 1, ThingEntry { kind: ThingKind::Box }),

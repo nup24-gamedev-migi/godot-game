@@ -90,6 +90,18 @@ impl State {
         })
         .is_some()
     }
+
+    pub fn field_width(&self) -> usize {
+        self.tiles.width()
+    }
+
+    pub fn field_height(&self) -> usize {
+        self.tiles.height()
+    }
+
+    pub fn tile_at(&self, x: usize, y: usize) -> Option<Tile> {
+        self.tiles.get(x, y).map(|x| *x)
+    }
 }
 
 #[derive(Debug)]
