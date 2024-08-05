@@ -67,6 +67,7 @@ impl Direction {
 
 #[derive(Debug)]
 pub struct State {
+    shadow: Table<bool>,
     tiles: Table<Tile>,
     things: HashMap<(usize, usize), usize>,
     thing_table: HashMap<usize, ThingEntry>,
@@ -110,6 +111,14 @@ impl State {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
+enum Vst {
+    #[default]
+    Empty,
+    Vst,
+    Cycle,
+}
+
 /*
     Invariants:
     * At most one player
@@ -124,6 +133,7 @@ impl SokobanKernel {
     pub fn new() -> Self {
         Self {
             state: State {
+                shadow: Table::new(),
                 tiles: Table::new(),
                 things: HashMap::new(),
                 thing_table: HashMap::new(),
@@ -160,6 +170,7 @@ impl SokobanKernel {
         Things: IntoIterator<Item = (usize, usize, usize, ThingEntry)>,
     {
         self.state.tiles.resize_with(width, height, || Tile::Void);
+        self.state.shadow.resize(width, height);
         self.state.things.clear();
         self.state.thing_table.clear();
 
@@ -181,6 +192,7 @@ impl SokobanKernel {
 
     // FIXME: rollback isn't really possible here
     pub fn move_player(&mut self, dir: Direction) -> Result<(), SokobanError> {
+        let have_treasure = self.state.treasure_exists();
         let (px, py, pt, _) = self.state().player_thing()
             .ok_or(SokobanError::NoPlayer)?;
         let (npx, npy) = dir.apply(px, py);
@@ -206,13 +218,126 @@ impl SokobanKernel {
         /* Everything has been accepted. We can record the player move */
         self.state.player_hist.push((px, py, npx, npy));
 
+        /* Check treasure stuff */
+        if have_treasure != self.state.treasure_exists() {
+            self.apply_shadow();
+        }
+
         Ok(())
+    }
+
+    fn even_odd_check(table: &Table<bool>) -> bool {
+        for y in 0..table.height() {
+            for x in 0..table.width() {
+                print!("{}\t", *table.get(x, y).unwrap());
+            }
+            print!("\n");
+        }
+
+        for y in 0..table.height() {
+            let mut touched = false;
+            let mut last = false;
+            let mut change_count = 1;
+            for x in 0..table.width() {
+                let curr = *table.get(x, y).unwrap();
+
+                if curr {
+                    touched = true;
+                }
+
+                if last != curr && !curr {
+                    change_count += 1;
+                }
+
+                last = curr;
+            }
+
+            if last {
+                change_count += 1;
+            }
+
+            info!("scanline: {y} change_count: {change_count}");
+
+            if change_count % 2 == 1 && touched {
+                info!("Scanline {y} detected");
+
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn check_cycle(&mut self, cyc: impl Iterator<Item = (usize, usize)>) -> bool {
+        info!("Begin cycle check");
+
+        let mut vst = Table::<bool>::new_filled(
+            self.state.tiles.width(),
+            self.state.tiles.height()
+        );
+
+        cyc.for_each(|(x, y)| {
+            info!("Mark {x} {y}");
+            vst.set(x, y, true);
+        });
+
+        Self::even_odd_check(&vst)
+    }
+
+    pub fn apply_shadow(&mut self) {
+        let mut vst = Table::<Vst>::new_filled(
+            self.state.tiles.width(),
+            self.state.tiles.height()
+        );
+        let hist = std::mem::replace(&mut self.state.player_hist, Vec::new());
+        let Some(start) = hist.first().map(|x| *x).map(|x| (x.0, x.1))
+            else { return; };
+        let mut it = std::iter::once(start).chain(
+            hist.iter().map(|v| (v.2, v.3))
+        );
+
+        let mut buff = VecDeque::new();
+
+        // FIXME: make a buff to store the path in
+        while let Some((x, y)) = it.next() {
+            buff.push_front((x, y));
+            info!("{x}, {y}");
+            match vst.get(x, y).unwrap() {
+                Vst::Empty => {
+                    vst.set(x, y, Vst::Vst);
+                },
+                Vst::Vst => {
+                    let cyc = buff.iter()
+                        .map(|x| *x)
+                        .skip(1)
+                        .take_while(|pos| *pos != (x, y))
+                        .chain(std::iter::once(buff.front().map(|x| *x).unwrap()));
+                    let is_cyc = self.check_cycle(cyc.clone());
+
+                    if is_cyc {
+                        cyc.for_each(|(x, y)| vst.set(x, y, Vst::Cycle));
+                    }
+                },
+                Vst::Cycle => continue,
+            }
+        }
+
+        let it = std::iter::once(start).chain(
+            hist.iter().map(|v| (v.2, v.3))
+        );
+        for (x, y) in it {
+            self.state.shadow.set(x, y, vst.get(x, y).map(|x| *x).unwrap() == Vst::Vst);
+        }
+    }
+
+    pub fn get_shadow(&self, x: usize, y: usize) -> Option<bool> {
+        self.state.shadow.get(x, y).map(|x| *x)
     }
 
     fn solve_collisions(&mut self, first_push: (usize, usize, Direction, usize)) -> Result<(), SokobanError> {
         let mut push_log = Vec::new();
         let mut push_queue = VecDeque::<(usize, usize, Direction, usize)>::new();
-        let mut push_table = Table::<Option<Direction>>::new_filled(
+        let mut push_table = Table::<bool>::new_filled(
             self.state.tiles.width(),
             self.state.tiles.height()
         );
@@ -222,7 +347,7 @@ impl SokobanKernel {
         // Loop invariant: no collision errors
         // Loop exit guarantee: no unresolved collisions
         while let Some((x, y, dir, pusher)) = push_queue.pop_front() {
-            push_table.set(x, y, Some(dir));
+            push_table.set(x, y, true);
             let (nx, ny) = dir.apply(x, y);
 
             /* Range check */
@@ -235,7 +360,7 @@ impl SokobanKernel {
             }
 
             /* Ah dang it, we looped */
-            if entry.is_some() {
+            if *entry {
                 return Err(SokobanError::CollisionLoop);
             }
 
@@ -245,6 +370,13 @@ impl SokobanKernel {
             /* Check if we need to push someone */
             let Some(occupier) = self.state.things.get(&(nx, ny))
                 else { continue; };
+
+            /* Player can collide into the chest */
+            let pusher_kind = self.state.thing_table[&pusher].kind;
+            let pushed_kind = self.state.thing_table[occupier].kind;
+            if pusher_kind == ThingKind::Player && pushed_kind == ThingKind::Chest {
+                continue;
+            }
 
             /* Add the occupier to the queue */
             push_queue.push_back((nx, ny, dir, *occupier));

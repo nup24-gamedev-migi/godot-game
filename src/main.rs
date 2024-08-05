@@ -168,6 +168,10 @@ fn control(
             kernel.move_player(Direction::Down)?;
         }
 
+        if keyboard_input.just_pressed(KeyCode::KeyK) {
+            kernel.apply_shadow();
+        }
+
         Ok::<_, SokobanError>(())
     };
 
@@ -187,12 +191,16 @@ fn update_entities(
     mut existing_things: Local<HashSet<usize>>,
     sokoban: Res<SokobanKernel>,
     mut things: Query<(Entity, &mut Transform, &SokobanThing)>,
-    mut tiles: Query<(&mut SokobanTile, &mut Handle<Image>)>,
+    mut tiles: Query<(&mut SokobanTile, &mut Handle<Image>, &mut Sprite)>,
     mut commands: Commands,
 ) {
 
-    for (mut tile, mut spr) in tiles.iter_mut() {
+    for (mut tile, mut img, mut spr) in tiles.iter_mut() {
         let in_engine = sokoban.state().tile_at(tile.0, tile.1).unwrap();
+
+        if sokoban.get_shadow(tile.0, tile.1).unwrap() {
+            spr.color = Color::BLACK;
+        }
 
         if tile.2 == in_engine {
             continue;
@@ -205,7 +213,7 @@ fn update_entities(
             Tile::Floor => server.load("grass1.png"),
             Tile::Exit => server.load("trapdoor.png"),
         };
-        *spr = texture;
+        *img = texture;
     }
 
     existing_things.clear();
