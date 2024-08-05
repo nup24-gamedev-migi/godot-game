@@ -168,9 +168,9 @@ fn control(
             kernel.move_player(Direction::Down)?;
         }
 
-        if keyboard_input.just_pressed(KeyCode::KeyK) {
-            kernel.apply_shadow();
-        }
+        // if keyboard_input.just_pressed(KeyCode::KeyK) {
+        //     kernel.apply_shadow();
+        // }
 
         Ok::<_, SokobanError>(())
     };
@@ -200,6 +200,8 @@ fn update_entities(
 
         if sokoban.get_shadow(tile.0, tile.1).unwrap() {
             spr.color = Color::BLACK;
+        } else {
+            spr.color = Color::WHITE
         }
 
         if tile.2 == in_engine {

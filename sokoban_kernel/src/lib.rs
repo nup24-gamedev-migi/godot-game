@@ -190,6 +190,44 @@ impl SokobanKernel {
         &self.state
     }
 
+    fn update_shadow(&mut self) {
+        self.state.shadow.reset();
+
+        let count_entries =  self.state.player_hist.len().saturating_sub(3);
+        let hist_iter = self.state.player_hist.iter()
+            .map(|v| (v.2, v.3))
+            .take(count_entries);
+        let mut log = Vec::new();
+
+        info!("begin");
+        for (x, y) in hist_iter {
+            log.push((x, y));
+            // info!("{log:?}");
+
+            // Rollback
+            if *self.state.shadow.get(x, y).unwrap() {
+                log.pop();
+                while let Some((px, py)) = log.pop() {
+                    if px == x && py == y {
+                        break;
+                    }
+
+                    self.state.shadow.set(px, py, false);
+                }
+
+                // continue;
+                log.push((x, y));
+            }
+
+            self.state.shadow.set(x, y, true);
+        }
+
+        info!("Final: {log:?}");
+
+        self.state.shadow.reset();
+        log.into_iter().for_each(|(x, y)| self.state.shadow.set(x, y, true));
+    }
+
     // FIXME: rollback isn't really possible here
     pub fn move_player(&mut self, dir: Direction) -> Result<(), SokobanError> {
         let have_treasure = self.state.treasure_exists();
@@ -217,10 +255,11 @@ impl SokobanKernel {
 
         /* Everything has been accepted. We can record the player move */
         self.state.player_hist.push((px, py, npx, npy));
+        self.update_shadow();
 
         /* Check treasure stuff */
         if have_treasure != self.state.treasure_exists() {
-            self.apply_shadow();
+            // self.apply_shadow();
         }
 
         Ok(())
@@ -284,51 +323,51 @@ impl SokobanKernel {
         Self::even_odd_check(&vst)
     }
 
-    pub fn apply_shadow(&mut self) {
-        let mut vst = Table::<Vst>::new_filled(
-            self.state.tiles.width(),
-            self.state.tiles.height()
-        );
-        let hist = std::mem::replace(&mut self.state.player_hist, Vec::new());
-        let Some(start) = hist.first().map(|x| *x).map(|x| (x.0, x.1))
-            else { return; };
-        let mut it = std::iter::once(start).chain(
-            hist.iter().map(|v| (v.2, v.3))
-        );
+    // pub fn apply_shadow(&mut self) {
+    //     let mut vst = Table::<Vst>::new_filled(
+    //         self.state.tiles.width(),
+    //         self.state.tiles.height()
+    //     );
+    //     let hist = std::mem::replace(&mut self.state.player_hist, Vec::new());
+    //     let Some(start) = hist.first().map(|x| *x).map(|x| (x.0, x.1))
+    //         else { return; };
+    //     let mut it = std::iter::once(start).chain(
+    //         hist.iter().map(|v| (v.2, v.3))
+    //     );
 
-        let mut buff = VecDeque::new();
+    //     let mut buff = VecDeque::new();
 
-        // FIXME: make a buff to store the path in
-        while let Some((x, y)) = it.next() {
-            buff.push_front((x, y));
-            info!("{x}, {y}");
-            match vst.get(x, y).unwrap() {
-                Vst::Empty => {
-                    vst.set(x, y, Vst::Vst);
-                },
-                Vst::Vst => {
-                    let cyc = buff.iter()
-                        .map(|x| *x)
-                        .skip(1)
-                        .take_while(|pos| *pos != (x, y))
-                        .chain(std::iter::once(buff.front().map(|x| *x).unwrap()));
-                    let is_cyc = self.check_cycle(cyc.clone());
+    //     // FIXME: make a buff to store the path in
+    //     while let Some((x, y)) = it.next() {
+    //         buff.push_front((x, y));
+    //         info!("{x}, {y}");
+    //         match vst.get(x, y).unwrap() {
+    //             Vst::Empty => {
+    //                 vst.set(x, y, Vst::Vst);
+    //             },
+    //             Vst::Vst => {
+    //                 let cyc = buff.iter()
+    //                     .map(|x| *x)
+    //                     .skip(1)
+    //                     .take_while(|pos| *pos != (x, y))
+    //                     .chain(std::iter::once(buff.front().map(|x| *x).unwrap()));
+    //                 let is_cyc = self.check_cycle(cyc.clone());
 
-                    if is_cyc {
-                        cyc.for_each(|(x, y)| vst.set(x, y, Vst::Cycle));
-                    }
-                },
-                Vst::Cycle => continue,
-            }
-        }
+    //                 if is_cyc {
+    //                     cyc.for_each(|(x, y)| vst.set(x, y, Vst::Cycle));
+    //                 }
+    //             },
+    //             Vst::Cycle => continue,
+    //         }
+    //     }
 
-        let it = std::iter::once(start).chain(
-            hist.iter().map(|v| (v.2, v.3))
-        );
-        for (x, y) in it {
-            self.state.shadow.set(x, y, vst.get(x, y).map(|x| *x).unwrap() == Vst::Vst);
-        }
-    }
+    //     let it = std::iter::once(start).chain(
+    //         hist.iter().map(|v| (v.2, v.3))
+    //     );
+    //     for (x, y) in it {
+    //         self.state.shadow.set(x, y, vst.get(x, y).map(|x| *x).unwrap() == Vst::Vst);
+    //     }
+    // }
 
     pub fn get_shadow(&self, x: usize, y: usize) -> Option<bool> {
         self.state.shadow.get(x, y).map(|x| *x)
